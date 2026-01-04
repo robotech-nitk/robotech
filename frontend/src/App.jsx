@@ -28,6 +28,12 @@ import AdminEvents from "./pages/admin/AdminEvents";
 import AdminEventForm from "./pages/admin/AdminEventForm";
 import AdminSponsorshipMessages from "./pages/admin/AdminSponsorship"
 
+// ERROR PAGES
+import Error404 from "./pages/Error404";
+import Error403 from "./pages/Error403";
+import Error500 from "./pages/Error500";
+import Offline from "./pages/Offline"
+
 function App() {
   return (
     <Routes>
@@ -150,6 +156,14 @@ function App() {
           </AdminGuard>
         }
       />
+
+      {/* Errors pages */}
+     
+      <Route path="/403" element={<Error403 />} />
+      <Route path="/500" element={<Error500 />} />
+      <Route path="/offline" element={<Offline />} />
+       <Route path="*" element={<Error404 />} />
+
 
       
     </Routes>
