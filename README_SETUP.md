@@ -129,6 +129,8 @@ Create a systemd socket and service for Gunicorn to keep it running in the backg
    npm install
    npm run build
    ```
+   *Note: Vite embeds environment variables into the JS bundle during the build step. If you change the API URL later, you must rebuild the frontend.*
+
    *This creates a `dist/` folder.*
 
 ## 7. Configure Nginx
