@@ -15,6 +15,7 @@ export default function ProjectDashboard() {
     const { user } = useOutletContext();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [seenMessageIds, setSeenMessageIds] = useState(new Set());
 
     const activeTab = searchParams.get("tab") || "overview";
     const setActiveTab = (tab) => {
@@ -25,18 +26,60 @@ export default function ProjectDashboard() {
         loadProject();
     }, [id]);
 
-    const loadProject = async () => {
+    const loadProject = async (isSilent = false) => {
         try {
-            setLoading(true);
+            if (!isSilent) setLoading(true);
             const res = await api.get(`/projects/${id}/`);
-            setProject(res.data);
+            const data = res.data;
+
+            // Notification Logic
+            if (isSilent && data.threads) {
+                data.threads.forEach(thread => {
+                    thread.messages?.forEach(m => {
+                        if (!seenMessageIds.has(m.id)) {
+                            // It's a new message!
+                            if (m.author !== user.id && Notification.permission === "granted") {
+                                new Notification(`New Signal: #${thread.title}`, {
+                                    body: `${m.author_details?.username}: ${m.content.substring(0, 50)}${m.content.length > 50 ? '...' : ''}`,
+                                    icon: '/favicon.ico'
+                                });
+                            }
+                            setSeenMessageIds(prev => new Set(prev).add(m.id));
+                        }
+                    });
+                });
+            } else if (!isSilent && data.threads) {
+                // Initialize seen IDs on first load
+                const initialIds = new Set();
+                data.threads.forEach(t => t.messages?.forEach(m => initialIds.add(m.id)));
+                setSeenMessageIds(initialIds);
+            }
+
+            setProject(data);
         } catch (err) {
             console.error(err);
-            navigate("/admin/projects");
+            if (!isSilent) navigate("/admin/projects");
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
+
+    // Auto Polling for Real-time feel
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (activeTab === 'discussions') {
+                loadProject(true);
+            }
+        }, 5000); // 5s poll
+        return () => clearInterval(interval);
+    }, [id, activeTab]);
+
+    // Request Notification Permission on mount
+    useEffect(() => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }, []);
 
     if (loading) return <div className="p-10 text-center text-cyan-500 animate-pulse">Initializing Workspace...</div>;
     if (!project) return null;
@@ -229,7 +272,15 @@ function TasksTab({ project, user, onUpdate }) {
 
 function DiscussionsTab({ project, user, onUpdate }) {
     const [msg, setMsg] = useState("");
-    const [activeThreadId, setActiveThreadId] = useState(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeThreadId = parseInt(searchParams.get("thread"));
+
+    const setActiveThreadId = (tid) => {
+        const params = new URLSearchParams(searchParams);
+        if (tid) params.set("thread", tid);
+        else params.delete("thread");
+        setSearchParams(params);
+    };
 
     const handleCreateThread = async () => {
         const title = prompt("Thread Subject:");
@@ -237,7 +288,7 @@ function DiscussionsTab({ project, user, onUpdate }) {
         try {
             const res = await api.post("/threads/", { title, project: project.id });
             setActiveThreadId(res.data.id);
-            onUpdate();
+            onUpdate(true);
         } catch (err) { alert("Failed to deploy channel."); }
     }
 
@@ -247,7 +298,7 @@ function DiscussionsTab({ project, user, onUpdate }) {
         try {
             await api.post("/messages/", { content: msg, thread: activeThreadId });
             setMsg("");
-            onUpdate();
+            onUpdate(true); // Silent update
         } catch (err) { console.error(err); }
     }
 

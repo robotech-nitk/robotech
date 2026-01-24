@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../api/axios";
 
 /* ================= CONFIG ================= */
 
@@ -27,15 +28,8 @@ export default function AdminSponsorshipPage() {
 
   async function loadInquiries() {
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/sponsorship/`,
-        { credentials: "include" }
-      );
-
-      if (!res.ok) throw new Error();
-
-      const data = await res.json();
-      setItems(data);
+      const res = await api.get("/sponsorship/");
+      setItems(res.data);
     } catch {
       showToast("Failed to load sponsorship inquiries", "error");
     } finally {
@@ -51,16 +45,7 @@ export default function AdminSponsorshipPage() {
     setDeleting(true);
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/sponsorship/${deleteTarget.id}/`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (!res.ok) throw new Error();
-
+      await api.delete(`/sponsorship/${deleteTarget.id}/`);
       setItems((prev) =>
         prev.filter((i) => i.id !== deleteTarget.id)
       );

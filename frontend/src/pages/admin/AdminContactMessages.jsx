@@ -28,17 +28,15 @@ export default function AdminContactMessages() {
   const fetchMessages = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/admin/contactMessages", {
+      const res = await api.get("/contact-messages/", {
         params: {
-          page,
-          limit,
           ...Object.fromEntries(
             Object.entries(filters).filter(([_, v]) => v !== "")
           ),
         },
       });
-      setMessages(res.data.messages);
-      setTotal(res.data.total);
+      setMessages(res.data || []);
+      setTotal(res.data?.length || 0);
     } finally {
       setLoading(false);
     }
@@ -51,7 +49,7 @@ export default function AdminContactMessages() {
   const openMessage = async (msg) => {
     setSelected(msg);
     if (!msg.is_read) {
-      await api.patch(`/admin/contactMessages/${msg.id}/read`);
+      await api.patch(`/contact-messages/${msg.id}/`, { is_read: true });
       fetchMessages();
     }
   };
@@ -66,7 +64,7 @@ export default function AdminContactMessages() {
   };
 
   const confirmDeleteMessage = async () => {
-    await api.delete(`/admin/contactMessages/${selected.id}`);
+    await api.delete(`/contact-messages/${selected.id}/`);
     setConfirmDelete(false);
     setSelected(null);
     fetchMessages();
@@ -125,22 +123,20 @@ export default function AdminContactMessages() {
                 <tr
                   key={m.id}
                   onClick={() => openMessage(m)}
-                  className={`border-t border-white/10 cursor-pointer transition ${
-                    m.is_read
-                      ? "hover:bg-white/5"
-                      : "bg-indigo-500/10 hover:bg-indigo-500/20"
-                  }`}
+                  className={`border-t border-white/10 cursor-pointer transition ${m.is_read
+                    ? "hover:bg-white/5"
+                    : "bg-indigo-500/10 hover:bg-indigo-500/20"
+                    }`}
                 >
                   <td className="p-3 font-medium">{m.name}</td>
                   <td className="p-3 text-indigo-300">{m.email}</td>
                   <td className="p-3">{m.subject || "-"}</td>
                   <td className="p-3 text-center">
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        m.is_read
-                          ? "bg-gray-600/40"
-                          : "bg-indigo-500/60"
-                      }`}
+                      className={`px-2 py-1 rounded text-xs ${m.is_read
+                        ? "bg-gray-600/40"
+                        : "bg-indigo-500/60"
+                        }`}
                     >
                       {m.is_read ? "Read" : "Unread"}
                     </span>
@@ -161,9 +157,8 @@ export default function AdminContactMessages() {
           <div
             key={m.id}
             onClick={() => openMessage(m)}
-            className={`glass-card p-4 cursor-pointer transition ${
-              m.is_read ? "" : "ring-1 ring-indigo-400/50"
-            }`}
+            className={`glass-card p-4 cursor-pointer transition ${m.is_read ? "" : "ring-1 ring-indigo-400/50"
+              }`}
           >
             <div className="flex justify-between items-center mb-1">
               <h3 className="font-semibold">{m.name}</h3>
@@ -174,8 +169,8 @@ export default function AdminContactMessages() {
             <p className="text-xs text-indigo-300 break-all">{m.email}</p>
             <p className="text-sm mt-2">{m.subject || "No subject"}</p>
             <p className="text-xs text-gray-400 mt-2">
-            {new Date(m.created_at).toLocaleString()}
-          </p>
+              {new Date(m.created_at).toLocaleString()}
+            </p>
 
           </div>
         ))}
