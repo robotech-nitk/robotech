@@ -10,6 +10,7 @@ import api from "../api/axios";
 export default function LandingPage() {
   const [projects, setProjects] = useState([]);
   const [gallery, setGallery] = useState([]);
+  const [recruitment, setRecruitment] = useState(null);
 
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [activeImage, setActiveImage] = useState(null);
@@ -21,14 +22,19 @@ export default function LandingPage() {
     let isMounted = true;
     const loadData = async () => {
       try {
-        const [projRes, galRes] = await Promise.all([
-          api.get("/projects"),
-          api.get("/gallery")
+        const [projRes, galRes, recRes] = await Promise.all([
+          api.get("/projects/"),
+          api.get("/gallery/"),
+          api.get("/recruitment/drives/active_public/").catch(() => ({ data: null }))
         ]);
 
         if (isMounted) {
-          setProjects(projRes.data);
+          // Filter only public projects
+          setProjects(projRes.data.filter(p => p.is_public));
           setGallery(galRes.data);
+          if (recRes.data) {
+            setRecruitment(recRes.data);
+          }
         }
       } catch (err) {
         console.error("Landing page load error:", err);
@@ -146,6 +152,67 @@ export default function LandingPage() {
           leaders, and innovators.
         </p>
       </section>
+
+      {/* ================= RECRUITMENT SECTION ================= */}
+      {recruitment && (
+        <section className="py-20 px-6 relative overflow-hidden">
+          {/* Background Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96 bg-orange-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+          <div className="relative z-10 max-w-5xl mx-auto text-center">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 font-bold text-xs uppercase tracking-widest mb-6 animate-pulse">
+              Recruitment Active
+            </div>
+
+            <h2 className="text-4xl md:text-5xl font-[Orbitron] text-white mb-6">
+              {recruitment.title}
+            </h2>
+
+            {recruitment.description && (
+              <p className="text-gray-300 text-lg mb-12 max-w-2xl mx-auto">{recruitment.description}</p>
+            )}
+
+            {/* TIMELINE */}
+            <div className="mb-12 relative flex justify-between items-center max-w-3xl mx-auto">
+              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/10 -z-10" />
+
+              {recruitment.timeline && recruitment.timeline.map((event, i) => {
+                const isFuture = new Date(event.date) > new Date();
+                const statusColor = event.is_completed ? "bg-green-500" : (isFuture ? "bg-gray-800 border-2 border-gray-600" : "bg-orange-500");
+
+                return (
+                  <div key={event.id} className="relative group">
+                    <div className={`w-4 h-4 rounded-full ${statusColor} mx-auto relative z-10 box-content transition-transform group-hover:scale-150 shadow-[0_0_15px_rgba(0,0,0,0.5)]`} />
+                    <div className="absolute top-6 left-1/2 -translate-left-1/2 w-32 -ml-16 text-center">
+                      <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${event.is_completed ? 'text-gray-500 line-through' : 'text-orange-400'}`}>
+                        {new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </p>
+                      <p className={`text-sm font-medium ${event.is_completed ? 'text-gray-600' : 'text-white'}`}>{event.title}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-16">
+              {recruitment.registration_link ? (
+                <a
+                  href={recruitment.registration_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-400 hover:to-pink-500 text-white px-8 py-4 rounded-xl font-bold text-lg uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all transform hover:scale-105 hover:shadow-orange-500/40"
+                >
+                  Apply Now <i className="fa-solid fa-arrow-right"></i>
+                </a>
+              ) : (
+                <button disabled className="bg-white/10 text-gray-400 px-8 py-4 rounded-xl font-bold uppercase tracking-widest cursor-not-allowed">
+                  Applications Opening Soon
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ================= PROJECTS ================= */}
       <section id="projects" className="py-20">

@@ -50,17 +50,28 @@ export default function AdminProjectsPage() {
     <div className="p-4 sm:p-6 text-white max-w-7xl mx-auto min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <button onClick={() => navigate("/admin/dashboard")} className="text-sm text-cyan-400 hover:underline mb-2">← Dashboard</button>
+          <button onClick={() => navigate("/portal/dashboard")} className="text-sm text-cyan-400 hover:underline mb-2">← Dashboard</button>
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-500 font-[Orbitron]">
-            Project Control
+            Workspaces
           </h1>
-          <p className="text-gray-400 text-sm">Deploy new missions or join ongoing operations.</p>
+          <p className="text-gray-400 text-sm">Deploy new missions or coordinate ongoing operations.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-3">
           {user.permissions?.includes('can_manage_projects') && (
-            <button onClick={() => setSelectedProject({ new: true })} className="bg-gradient-to-r from-green-500 to-cyan-600 px-6 py-2 rounded-lg font-bold shadow-lg shadow-cyan-500/20 hover:scale-105 transition">+ Deploy Mission</button>
+            <button
+              onClick={() => setSelectedProject({ new: true })}
+              className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-cyan-600 px-6 py-3 rounded-xl font-black shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-[10px] text-white whitespace-nowrap"
+            >
+              + Launch Workspace
+            </button>
           )}
-          <button onClick={loadData} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-gray-300 hover:text-white transition" title="Refresh Data">🔄</button>
+          <button
+            onClick={loadData}
+            className="flex-1 sm:flex-none border border-white/10 hover:bg-white/10 p-3 rounded-xl text-gray-400 hover:text-cyan-400 transition-all shadow-xl bg-white/5"
+            title="Rescan Base"
+          >
+            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          </button>
         </div>
       </div>
 
@@ -69,7 +80,7 @@ export default function AdminProjectsPage() {
       ) : projects.length === 0 ? (
         <div className="text-center py-20 bg-white/5 rounded-xl border border-white/10"><p className="text-gray-400 mb-4">No active operations detected.</p></div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {projects.map(p => {
             const isMember = p.members?.includes(user.id) || p.lead === user.id;
             const hasRequested = p.join_requests?.some(r => r.user === user.id);
@@ -82,7 +93,7 @@ export default function AdminProjectsPage() {
                 hasRequested={hasRequested}
                 onJoin={() => setJoinModal(p.id)}
                 onClick={() => {
-                  if (isMember) navigate(`/admin/projects/${p.id}`);
+                  if (isMember) navigate(`/portal/projects/${p.id}`);
                   else if (user.permissions?.includes('can_manage_projects')) setSelectedProject(p);
                   else alert("Restricted Area: Recruitment Pending.");
                 }}
@@ -102,23 +113,23 @@ export default function AdminProjectsPage() {
       )}
 
       {joinModal && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-cyan-500/30 p-8 rounded-2xl max-w-md w-full shadow-[0_0_50px_rgba(34,211,238,0.1)]">
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass border border-cyan-500/30 p-8 rounded-2xl max-w-md w-full shadow-[0_0_50px_rgba(34,211,238,0.1)]">
             <h3 className="text-2xl font-bold font-[Orbitron] text-cyan-400 mb-2">Request Authorization</h3>
-            <p className="text-gray-400 text-sm mb-6 uppercase tracking-tighter">Mission: {projects.find(p => p.id === joinModal)?.title}</p>
+            <p className="text-gray-400 text-xs mb-6 uppercase tracking-widest opacity-60">MISSION: {projects.find(p => p.id === joinModal)?.title}</p>
 
             <textarea
-              className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white text-sm h-32 outline-none focus:border-cyan-500 mb-6"
+              className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white text-sm h-32 outline-none focus:border-cyan-500 mb-6 transition"
               placeholder="State your credentials and motivation for this operation..."
               id="join-msg"
             />
 
             <div className="flex gap-4">
-              <button onClick={() => setJoinModal(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 font-bold hover:bg-white/5 transition-all">ABORT</button>
+              <button onClick={() => setJoinModal(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-gray-500 font-bold hover:bg-white/5 transition uppercase tracking-widest text-xs">Abort</button>
               <button
                 onClick={() => handleJoinRequest(joinModal, document.getElementById('join-msg').value)}
-                className="flex-1 py-3 rounded-xl bg-cyan-600 text-white font-bold hover:bg-cyan-500 transition-all shadow-lg shadow-cyan-500/20"
-              >TRANSMIT</button>
+                className="flex-[2] py-3 rounded-xl bg-cyan-600 text-white font-black hover:bg-cyan-500 transition shadow-lg shadow-cyan-500/20 uppercase tracking-widest text-xs"
+              >Transmit Signal</button>
             </div>
           </div>
         </div>
@@ -129,49 +140,55 @@ export default function AdminProjectsPage() {
 
 function ProjectCard({ project, onClick, isMember, hasRequested, onJoin }) {
   const statusColors = {
-    'PROPOSED': 'bg-gray-700 text-gray-300',
-    'IN_PROGRESS': 'bg-cyan-600/30 text-cyan-300 border-cyan-500/30',
-    'COMPLETED': 'bg-green-600/30 text-green-300 border-green-500/30',
-    'HALTED': 'bg-red-600/30 text-red-300 border-red-500/30'
+    'PROPOSED': 'bg-gray-700/20 text-gray-400 border-white/10',
+    'IN_PROGRESS': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    'COMPLETED': 'bg-green-500/10 text-green-400 border-green-500/20',
+    'HALTED': 'bg-red-500/10 text-red-400 border-red-500/20'
   };
 
   return (
-    <div onClick={onClick} className="bg-[#111] border border-white/10 rounded-2xl p-6 hover:border-cyan-500/50 transition-all cursor-pointer group relative overflow-hidden flex flex-col h-full shadow-lg hover:shadow-cyan-500/10 active:scale-[0.98]">
-      {/* Background Glow */}
-      <div className="absolute -right-10 -top-10 w-32 h-32 bg-cyan-600/5 blur-3xl rounded-full group-hover:bg-cyan-600/10 transition-all" />
-
-      <div className="flex justify-between items-start mb-4">
-        <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border ${statusColors[project.status] || 'bg-gray-800'}`}>
+    <div onClick={onClick} className="glass border border-white/5 rounded-2xl p-6 hover:border-cyan-500/30 transition-all cursor-pointer group relative overflow-hidden flex flex-col h-full hover:shadow-2xl hover:shadow-cyan-500/5">
+      <div className="flex justify-between items-start mb-6">
+        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-black uppercase tracking-widest border ${statusColors[project.status]}`}>
           {project.status.replace("_", " ")}
         </span>
-        {project.status_update_requested && <div className="bg-amber-500/20 text-amber-500 p-1 rounded-full animate-bounce"><WarningIcon /></div>}
+        {project.status_update_requested && <div className="bg-amber-500/20 text-amber-500 p-1.5 rounded-lg animate-pulse border border-amber-500/30"><WarningIcon /></div>}
       </div>
 
-      <h3 className="text-xl font-bold text-gray-100 mb-2 truncate group-hover:text-cyan-400 transition-colors uppercase font-[Orbitron]">{project.title}</h3>
-      <p className="text-sm text-gray-500 line-clamp-2 h-10 mb-6 font-medium leading-tight">{project.description}</p>
+      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors uppercase font-[Orbitron] tracking-tight">{project.title}</h3>
+      <p className="text-sm text-gray-500 line-clamp-2 mb-8 leading-relaxed font-medium">{project.description}</p>
 
-      <div className="flex-1 mt-auto">
-        <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest border-t border-white/5 pt-4">
-          <div className="flex items-center gap-1.5"><UserIcon /><span>Lead: <span className="text-gray-300">{project.lead_details?.username || "TBD"}</span></span></div>
-          <div className="flex items-center gap-1.5"><TaskIcon /><span>{project.tasks?.length || 0} OBJS</span></div>
+      <div className="mt-auto pt-6 border-t border-white/5">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mb-1">Sector Lead</span>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-cyan-500/10 flex items-center justify-center text-[10px] text-cyan-500 font-bold">{project.lead_details?.username?.[0] || "?"}</div>
+              <span className="text-xs text-gray-300 font-medium">{project.lead_details?.username || "TBD"}</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mb-1">Objectives</span>
+            <span className="text-xs text-gray-300 font-bold">{project.tasks?.length || 0} ACTIVE</span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-6">
         {isMember ? (
-          <div className="w-full py-2 bg-white/5 rounded-lg text-center text-[10px] font-black text-cyan-400 border border-cyan-500/20 uppercase tracking-widest italic flex items-center justify-center gap-2">
-            WORKSPACE ACTIVE <span className="animate-pulse">●</span>
+          <div className="w-full py-2.5 bg-cyan-500/5 rounded-xl text-center text-[10px] font-black text-cyan-500 border border-cyan-500/10 uppercase tracking-widest flex items-center justify-center gap-2">
+            WORKSPACE ACTIVE <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
           </div>
         ) : hasRequested ? (
-          <div className="w-full py-2 bg-amber-500/10 rounded-lg text-center text-[10px] font-black text-amber-500 border border-amber-500/20 uppercase tracking-widest italic">
-            SIGNAL PENDING...
+          <div className="w-full py-2.5 bg-amber-500/5 rounded-xl text-center text-[10px] font-black text-amber-500 border border-amber-500/10 uppercase tracking-widest">
+            ENCRYPTION PENDING
           </div>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); onJoin(); }}
-            className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-center text-[10px] font-black text-white transition-all uppercase tracking-widest shadow-md hover:shadow-cyan-500/30"
+            className="w-full py-2.5 bg-white/5 hover:bg-cyan-600 rounded-xl text-center text-[10px] font-black text-gray-400 hover:text-white transition uppercase tracking-widest border border-white/10 hover:border-cyan-500 shadow-sm"
           >
-            REQUEST ACCESS
+            Request Data Access
           </button>
         )}
       </div>
@@ -230,14 +247,36 @@ function ProjectManager({ project, users, onClose, onUpdate }) {
   const assignableUsers = users.filter(u => u.id === project.lead || (project.members && project.members.includes(u.id)));
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-[#15151a] border border-white/20 w-full max-w-4xl h-[90vh] rounded-xl flex flex-col shadow-2xl relative overflow-hidden">
-        <div className="p-6 border-b border-white/10 flex justify-between items-start bg-[#1a1a20]">
-          <div>{isNew ? <h2 className="text-2xl font-bold text-white">New Project</h2> : <div><h2 className="text-2xl font-bold text-white">{project.title}</h2><div className="flex items-center gap-3 mt-1 text-sm text-gray-400"><span className="bg-white/10 px-2 py-0.5 rounded">{project.status}</span><span>Lead: {project.lead_details?.username || "None"}</span></div></div>}</div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
+    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+      <div className="glass w-full max-w-5xl h-[95vh] sm:h-[90vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden border border-white/10">
+        <div className="p-4 sm:p-6 border-b border-white/5 flex justify-between items-start bg-black/40">
+          <div>
+            {isNew ? (
+              <h2 className="text-2xl font-bold font-[Orbitron] text-cyan-400 tracking-tight">Launch Workspace</h2>
+            ) : (
+              <div className="flex flex-col">
+                <h2 className="text-xl sm:text-2xl font-bold font-[Orbitron] text-white tracking-tight truncate max-w-md">{project.title}</h2>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <span className="text-[9px] font-black bg-cyan-500/10 text-cyan-500 px-2 py-0.5 rounded border border-cyan-500/20 uppercase tracking-widest">{project.status}</span>
+                  <span className="text-[10px] text-gray-500 font-medium">LEAD: {project.lead_details?.username || "TBD"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-500 hover:text-white transition text-2xl">&times;</button>
         </div>
-        {!isNew && <div className="flex border-b border-white/10 bg-[#121216]"> {['overview', 'tasks', 'team', 'status'].map(tab => <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 text-sm font-medium uppercase tracking-wide transition ${activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-400 bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}>{tab}</button>)}</div>}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#0f1014]">
+
+        {!isNew && (
+          <div className="flex border-b border-white/5 bg-black/20 overflow-x-auto custom-scrollbar">
+            {['overview', 'tasks', 'team', 'status'].map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-4 text-[10px] font-black uppercase tracking-[2px] transition shrink-0 ${activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5' : 'text-gray-500 hover:text-gray-300'}`}>
+                {tab}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar">
           {(activeTab === 'overview' || isNew) && (
             <form onSubmit={handleSaveInfo} className="space-y-6 max-w-2xl">
               <div><label className="block text-xs uppercase text-gray-500 mb-1">Title</label><input required className="w-full bg-black/30 border border-white/10 rounded p-3 text-white focus:border-cyan-500 outline-none" value={formData.title || ""} onChange={e => setFormData({ ...formData, title: e.target.value })} /></div>

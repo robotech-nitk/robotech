@@ -232,7 +232,7 @@ class ProfileFieldViewSet(viewsets.ModelViewSet):
         return Response({"status": "updated"})
 
 class UserProfileView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated] # Bypass GlobalPermission, handled by method logic
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
@@ -263,7 +263,13 @@ class UserProfileView(APIView):
 
         if 'is_public' in data:
             val = data['is_public']
-            profile.is_public = (val == 'true' or val is True)
+            if isinstance(val, bool):
+                profile.is_public = val
+            elif isinstance(val, str):
+                profile.is_public = val.lower() == 'true'
+            else:
+                 # Default fallback if unknown type
+                 profile.is_public = True
 
         if 'image' in request.FILES: profile.image = request.FILES['image']
         

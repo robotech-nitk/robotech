@@ -111,15 +111,21 @@ export default function AdminGalleryPage() {
 
       {/* ===== BACK NAV ===== */}
       <button
-        onClick={() => navigate("/admin/dashboard")}
-        className="text-sm text-cyan-400 hover:underline mb-6 w-fit"
+        onClick={() => navigate("/portal/dashboard")}
+        className="text-sm text-cyan-400 hover:underline mb-4 w-fit flex items-center gap-1"
       >
         ← Back to Dashboard
       </button>
 
-      <h1 className="text-3xl font-bold text-cyan-400 mb-8">
-        Gallery Management
-      </h1>
+      {/* ===== HEADER ===== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 uppercase tracking-tight">
+            Media Archive
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Manage institutional visual assets and project captures.</p>
+        </div>
+      </div>
 
       {/* ===== UPLOAD CARD ===== */}
       <div className="mb-8 p-5 rounded-xl border border-white/10 bg-white/5">

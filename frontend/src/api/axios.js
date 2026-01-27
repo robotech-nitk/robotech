@@ -2,7 +2,6 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
-  withCredentials: true,
 });
 
 // REQUEST INTERCEPTOR: Add Token
@@ -24,6 +23,13 @@ api.interceptors.response.use(
     if (axios.isCancel(error)) {
       return Promise.reject(error);
     }
+
+    if (error.response?.status === 401) {
+      // If unauthorized, clear tokens to avoid sticky 401s on public pages
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+    }
+
     console.error("API Error:", error.response || error.message);
     return Promise.reject(error);
   }

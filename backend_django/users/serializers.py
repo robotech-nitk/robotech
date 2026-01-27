@@ -25,7 +25,10 @@ class RoleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AuditLogSerializer(serializers.ModelSerializer):
-    actor_name = serializers.CharField(source='actor.username', read_only=True)
+    actor_name = serializers.SerializerMethodField()
+
+    def get_actor_name(self, obj):
+        return obj.actor.username if obj.actor else "System/Deleted User"
     
     class Meta:
         model = AuditLog

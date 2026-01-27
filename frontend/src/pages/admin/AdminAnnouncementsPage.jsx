@@ -88,8 +88,8 @@ export default function AdminAnnouncementsPage() {
 
       {/* ===== BACK NAV ===== */}
       <button
-        onClick={() => navigate("/admin/dashboard")}
-        className="text-sm text-cyan-400 hover:underline mb-4 w-fit"
+        onClick={() => navigate("/portal/dashboard")}
+        className="text-sm text-cyan-400 hover:underline mb-4 w-fit flex items-center gap-1"
       >
         ← Back to Dashboard
       </button>
@@ -97,25 +97,19 @@ export default function AdminAnnouncementsPage() {
       {/* ===== HEADER ===== */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-cyan-400">
-            Announcements
+          <h1 className="text-3xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 uppercase tracking-tight">
+            Broadcast Control
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Manage all public announcements
+          <p className="text-gray-400 text-sm mt-1">
+            Dispatch announcements to the public terminals.
           </p>
         </div>
 
         <button
           onClick={() => setActiveItem({})}
-          className="
-            w-full sm:w-auto
-            bg-cyan-500 hover:bg-cyan-600
-            text-black font-medium
-            px-5 py-3 sm:py-2.5
-            rounded-lg transition
-          "
+          className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-black px-6 py-3 rounded-xl shadow-lg shadow-cyan-500/20 transition uppercase tracking-widest text-[10px] whitespace-nowrap"
         >
-          + New Announcement
+          + Initialize Broadcast
         </button>
       </div>
 

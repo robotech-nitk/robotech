@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold font-[Orbitron] text-cyan-400">User Management</h1>
                 <div className="flex gap-2">
-                    <button onClick={() => navigate("/admin/taxonomy")} className="bg-white/10 px-4 py-2 rounded text-sm hover:bg-white/20">⚙️ Structure</button>
+                    <button onClick={() => navigate("/portal/taxonomy")} className="bg-white/10 px-4 py-2 rounded text-sm hover:bg-white/20">⚙️ Structure</button>
                     <button onClick={() => { setIsEditing(false); setFormOpen(true); setForm({ ...form, username: "", password: "" }); }} className="bg-cyan-500 px-4 py-2 rounded text-black font-bold">+ New User</button>
                 </div>
             </div>
@@ -163,20 +163,23 @@ export default function AdminUsersPage() {
 
             {/* MODAL */}
             {formOpen && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="glass w-full max-w-2xl p-6 rounded-xl my-10 relative">
-                        <button onClick={() => setFormOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white">✕</button>
-                        <h2 className="text-2xl font-bold mb-6">{isEditing ? "Edit User" : "Add User"}</h2>
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm overflow-y-auto">
+                    <div className="glass w-full max-w-2xl p-4 sm:p-8 rounded-2xl my-auto relative max-h-[95vh] overflow-y-auto custom-scrollbar shadow-2xl border border-white/5">
+                        <button onClick={() => setFormOpen(false)} className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white transition">✕</button>
+                        <h2 className="text-2xl font-bold mb-8 font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{isEditing ? "Modify Personnel" : "Onboard New Member"}</h2>
 
-                        <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div><label className="text-xs text-gray-400">Username</label><input required disabled={isEditing} className="w-full bg-black/40 border border-white/20 rounded p-2 text-white" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} /></div>
-                                <div><label className="text-xs text-gray-400">Password</label><input type="password" className="w-full bg-black/40 border border-white/20 rounded p-2 text-white" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} /></div>
+                        <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            <div className="space-y-6">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-cyan-500 border-b border-white/5 pb-2">Identity & Access</p>
+                                <div><label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Username</label><input required disabled={isEditing} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} /></div>
+                                {!isEditing && (
+                                    <div><label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Access Key (Password)</label><input type="password" required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="****" /></div>
+                                )}
 
-                                <div><label className="text-xs text-gray-400">Functional Permissions (Roles)</label>
-                                    <div className="flex flex-wrap gap-2 mt-1 max-h-32 overflow-y-auto bg-black/20 p-2 rounded">
+                                <div><label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Authorization Protocols (Roles)</label>
+                                    <div className="flex flex-wrap gap-2 mt-2 max-h-40 overflow-y-auto bg-black/40 p-3 rounded-xl border border-white/10 custom-scrollbar">
                                         {roles.map(r => (
-                                            <label key={r.id} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded cursor-pointer border border-white/10 hover:border-cyan-500/50 transition">
+                                            <label key={r.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border transition text-xs font-medium ${form.role_ids.includes(r.id) ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={form.role_ids.includes(r.id)}
@@ -186,53 +189,106 @@ export default function AdminUsersPage() {
                                                             : form.role_ids.filter(id => id !== r.id);
                                                         setForm({ ...form, role_ids: newIds });
                                                     }}
-                                                    className="accent-cyan-500"
+                                                    className="hidden"
                                                 />
-                                                <span className="text-xs">{r.name}</span>
+                                                <span>{r.name}</span>
                                             </label>
                                         ))}
                                     </div></div>
-
-                                <div><label className="text-xs text-gray-400">SIG / Team</label>
-                                    <select className="w-full bg-black/40 border border-white/20 rounded p-2 text-white" value={form.sig} onChange={e => setForm({ ...form, sig: e.target.value })}>
-                                        <option value="">-- No SIG --</option>
-                                        {sigs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                    </select></div>
-
-                                <div><label className="text-xs text-gray-400">Structure Position</label>
-                                    <select className="w-full bg-black/40 border border-white/20 rounded p-2 text-white" value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}>
-                                        <option value="">-- Select Position --</option>
-                                        {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                                    </select></div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div><label className="text-xs text-gray-400">Full Name</label><input className="w-full bg-black/40 border border-white/20 rounded p-2 text-white" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <label className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 rounded"><input type="checkbox" checked={form.is_public} onChange={e => setForm({ ...form, is_public: e.target.checked })} /> <span className="text-xs">Public</span></label>
-                                    <label className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 rounded"><input type="checkbox" checked={form.is_alumni} onChange={e => setForm({ ...form, is_alumni: e.target.checked })} /> <span className="text-xs">Alumni</span></label>
+                            <div className="space-y-6">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-cyan-500 border-b border-white/5 pb-2">Profile Configuration</p>
+                                <div><label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Full Name</label><input className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Sector (SIG)</label>
+                                        <select className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition" value={form.sig} onChange={e => setForm({ ...form, sig: e.target.value })}>
+                                            <option value="">None</option>
+                                            {sigs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        </select></div>
+                                    <div><label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Hierarchy Pos</label>
+                                        <select className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition" value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}>
+                                            <option value="">None</option>
+                                            {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                                        </select></div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition cursor-pointer ${form.is_public ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                                        <input type="checkbox" checked={form.is_public} onChange={e => setForm({ ...form, is_public: e.target.checked })} className="hidden" />
+                                        <span className="text-xs font-bold uppercase tracking-widest">Public</span>
+                                    </label>
+                                    <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition cursor-pointer ${form.is_alumni ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                                        <input type="checkbox" checked={form.is_alumni} onChange={e => setForm({ ...form, is_alumni: e.target.checked })} className="hidden" />
+                                        <span className="text-xs font-bold uppercase tracking-widest">Alumni</span>
+                                    </label>
+                                </div>
+
+                                {/* Restricted Access Toggle (Admin Only) */}
+                                <div className="pt-2 border-t border-white/5">
+                                    <label className={`flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${!form.is_active ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/5 border-white/10'}`}>
+                                        <div className="flex flex-col">
+                                            <span className={`text-xs font-black uppercase tracking-widest ${!form.is_active ? 'text-red-400' : 'text-green-500'}`}>
+                                                {form.is_active ? "Login Enabled" : "Login Disabled"}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500">
+                                                {!form.is_active ? "User cannot access portal" : "Normal system access"}
+                                            </span>
+                                        </div>
+
+                                        <div className={`w-10 h-5 rounded-full p-0.5 transition-colors ${form.is_active ? 'bg-green-500' : 'bg-gray-700'}`}>
+                                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${form.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={form.is_active}
+                                            onChange={e => setForm({ ...form, is_active: e.target.checked })}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Academic Year</label>
+                                    <select
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition"
+                                        value={form.year}
+                                        onChange={e => setForm({ ...form, year: e.target.value })}
+                                    >
+                                        <option value="">Select Year...</option>
+                                        <option value="1st Year">1st Year</option>
+                                        <option value="2nd Year">2nd Year</option>
+                                        <option value="3rd Year">3rd Year</option>
+                                        <option value="4th Year">4th Year</option>
+                                    </select>
                                 </div>
 
                                 {/* DYNAMIC FIELDS section */}
                                 {visibleFields.length > 0 && (
-                                    <div className="bg-white/5 p-3 rounded border border-white/10 mt-2">
-                                        <h4 className="text-xs font-bold text-cyan-400 mb-2 uppercase">
-                                            {form.sig ? `${form.sig} Only Fields` : "Extra Fields"}
+                                    <div className="bg-cyan-500/5 p-4 rounded-xl border border-cyan-500/20">
+                                        <h4 className="text-[10px] font-black text-cyan-500 mb-4 uppercase tracking-widest border-b border-cyan-500/10 pb-2">
+                                            {form.sig ? `${form.sig} Core Protocols` : "Extended Metadata"}
                                         </h4>
-                                        {visibleFields.map(f => (
-                                            <div key={f.key} className="mb-2">
-                                                <label className="text-[10px] text-gray-400 block mb-1">{f.label}</label>
-                                                <input className="w-full bg-black/40 border-b border-white/20 text-white text-sm focus:border-cyan-400 outline-none pb-1"
-                                                    value={form.custom_fields[f.key] || ""}
-                                                    onChange={e => setForm({ ...form, custom_fields: { ...form.custom_fields, [f.key]: e.target.value } })}
-                                                />
-                                            </div>
-                                        ))}
+                                        <div className="space-y-4">
+                                            {visibleFields.map(f => (
+                                                <div key={f.key}>
+                                                    <label className="text-[10px] text-gray-500 font-bold block mb-1 uppercase tracking-tighter">{f.label}</label>
+                                                    <input className="w-full bg-transparent border-b border-white/10 text-white text-sm focus:border-cyan-400 outline-none pb-1 transition"
+                                                        value={form.custom_fields[f.key] || ""}
+                                                        onChange={e => setForm({ ...form, custom_fields: { ...form.custom_fields, [f.key]: e.target.value } })}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
 
-                            <button type="submit" disabled={saving} className="col-span-1 md:col-span-2 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded font-bold text-white hover:opacity-90">{saving ? "Saving..." : "Save User"}</button>
+                            <div className="col-span-1 md:col-span-2 flex gap-4 pt-6 mt-4 border-t border-white/5">
+                                <button type="button" onClick={() => setFormOpen(false)} className="flex-1 py-3 h-12 rounded-xl border border-white/10 text-gray-500 font-bold hover:bg-white/5 transition tracking-widest text-xs uppercase">Abort</button>
+                                <button type="submit" disabled={saving} className="flex-[2] py-3 h-12 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-black text-white hover:shadow-lg hover:shadow-cyan-500/20 transition tracking-widest text-xs uppercase disabled:opacity-50">{saving ? "Processing..." : "Commit Changes"}</button>
+                            </div>
                         </form>
                     </div>
                 </div>

@@ -134,17 +134,18 @@ export default function AdminTeamPage() {
   return (
     <div className="animate-fade-in pb-20">
       {/* HEADER */}
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-green-500">
-            Team Management
+          <button onClick={() => navigate("/portal/dashboard")} className="text-sm text-cyan-400 hover:underline mb-2">← Dashboard</button>
+          <h1 className="text-3xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-green-500 uppercase tracking-tight">
+            Institutional Roster
           </h1>
-          <p className="text-gray-400 mt-1">
-            Group members by SIG, manage Alumni, and reorder display.
+          <p className="text-gray-400 mt-1 text-sm">
+            Catalog and organize the collective human intelligence of the club.
           </p>
         </div>
-        <button onClick={() => navigate("/admin/users")} className="text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded transition">
-          Manage Users List →
+        <button onClick={() => navigate("/portal/users")} className="bg-white/5 hover:bg-white/10 px-6 py-2.5 rounded-xl border border-white/10 transition font-bold text-xs uppercase tracking-widest text-cyan-500">
+          Sync Personnel Base →
         </button>
       </div>
 
@@ -190,7 +191,7 @@ export default function AdminTeamPage() {
                   </div>
                   {/* Edit Shortcut */}
                   <button
-                    onClick={() => navigate("/admin/users")} // Ideally prompt to edit modal, but users page is source of truth
+                    onClick={() => navigate("/portal/users")} // Ideally prompt to edit modal, but users page is source of truth
                     className="text-xs text-cyan-500 hover:text-cyan-400"
                   >
                     Edit

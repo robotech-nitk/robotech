@@ -1,9 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../api/axios";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [recruitmentLink, setRecruitmentLink] = useState(null);
   const navbarRef = useRef(null);
+
+  useEffect(() => {
+    // Check for active recruitment
+    const checkRecruitment = async () => {
+      try {
+        const res = await api.get("/recruitment/drives/active_public/");
+        if (res.data && res.data.registration_link) {
+          setRecruitmentLink(res.data.registration_link);
+        }
+      } catch (e) { }
+    };
+    checkRecruitment();
+  }, []);
 
   // Navbar background on scroll
   useEffect(() => {
@@ -57,6 +72,21 @@ export default function Navbar() {
           <div className="hidden md:flex space-x-8 items-center text-sm font-medium">
             <Link to="/" className="nav-link">Home</Link>
             <Link to="/events" className="nav-link">Events</Link>
+
+            {recruitmentLink && (
+              <a
+                href={recruitmentLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-link text-orange-400 font-bold hover:text-orange-300 relative group"
+              >
+                Join Us
+                <span className="absolute -top-1 -right-2 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+              </a>
+            )}
 
             <Link to="/team" className="nav-link">Team</Link>
 
@@ -127,6 +157,17 @@ export default function Navbar() {
           <div className="flex-1 flex flex-col justify-center px-8 space-y-6 text-lg font-medium">
             <Link onClick={() => setMobileOpen(false)} to="/" className="mobile-link">Home</Link>
             <Link onClick={() => setMobileOpen(false)} to="/events" className="mobile-link">Events</Link>
+
+            {recruitmentLink && (
+              <a
+                href={recruitmentLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mobile-link text-orange-400 font-bold"
+              >
+                Join Us (Recruitment Open)
+              </a>
+            )}
 
             <Link onClick={() => setMobileOpen(false)} to="/team" className="mobile-link">Team</Link>
             <a

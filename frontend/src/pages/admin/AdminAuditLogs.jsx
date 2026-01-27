@@ -17,7 +17,7 @@ export default function AdminAuditLogs() {
   }, [page, eventType]);
 
   const fetchLogs = async () => {
-    const res = await api.get("/admin/audit-logs", {
+    const res = await api.get("/audit-logs", {
       params: { page, limit, eventType },
     });
     setLogs(res.data.data);

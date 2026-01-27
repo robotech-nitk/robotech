@@ -10,13 +10,15 @@ from projects import urls as project_urls
 from events import urls as events_urls
 from core import urls as core_urls
 from quizzes import urls as quizzes_urls
+from recruitment import urls as recruitment_urls
 
 # Merge patterns for /api/
 # This allows 'users' and 'projects' to both register routes under /api/
 # without one shadowing the other, assuming their router paths don't conflict.
-api_patterns = user_urls.urlpatterns + project_urls.urlpatterns + events_urls.urlpatterns + core_urls.urlpatterns + quizzes_urls.urlpatterns
+api_patterns = user_urls.urlpatterns + project_urls.urlpatterns + events_urls.urlpatterns + core_urls.urlpatterns + quizzes_urls.urlpatterns + recruitment_urls.urlpatterns
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('internal-v1-secret-admin/', admin.site.urls),
     path('api/', include(api_patterns)),
+    path('api/recruitment/', include(recruitment_urls)), # Also keeping explicit path just in case overlap, but merged api_patterns is preferred if using ViewSets
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

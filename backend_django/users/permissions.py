@@ -10,6 +10,7 @@ class GlobalPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         user = request.user
         view_name = view.__class__.__name__
+        print(f"DEBUG: Permission check for {view_name} [{request.method}] User: {user}")
         
         # 0. Public Bypass for Submissions (Unauthenticated ok)
         public_post_views = [
@@ -17,7 +18,28 @@ class GlobalPermission(permissions.BasePermission):
             'ContactMessageViewSet', 
             'SponsorshipViewSet'
         ]
+        
+        # 0.1 Public Bypass for Reading (Landing page etc)
+        public_read_views = [
+            'ProjectViewSet',
+            'GalleryViewSet',
+            'announcements/public/',
+            'gallery/public-grouped/',
+            'recruitment/drives/active_public/',
+            'AnnouncementViewSet',
+            'EventViewSet',
+            'SponsorshipViewSet', # Might want to see current sponsors
+            'FormViewSet',        # Need to see form structure to submit
+            'FormSectionViewSet',
+            'FormFieldViewSet',
+            'SigViewSet',
+            'TeamPositionViewSet'
+        ]
+
         if view_name in public_post_views and request.method == 'POST':
+            return True
+            
+        if view_name in public_read_views and request.method in permissions.SAFE_METHODS:
             return True
 
         if not user or not user.is_authenticated:

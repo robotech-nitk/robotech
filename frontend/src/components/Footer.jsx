@@ -84,7 +84,7 @@ export default function Footer() {
               { to: "/team", label: "Team" },
               { to: "/#projects", label: "Projects" },
               { to: "/contactUs", label: "Contact" },
-              {to:"/admin/dashboard",label:"admin login"}
+              { to: "/portal/dashboard", label: "Portal Login" }
             ].map(link => (
               <li key={link.label}>
                 <Link

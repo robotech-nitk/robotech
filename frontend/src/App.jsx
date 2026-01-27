@@ -17,7 +17,6 @@ import AdminGuard from "./auth/AdminGuard";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProfile from "./pages/admin/AdminProfile";
-import ChangePassword from "./pages/admin/ChangePassword";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AdminContactMessages from "./pages/admin/AdminContactMessages";
 import AdminTeamPage from "./pages/admin/AdminTeamPage";
@@ -37,6 +36,7 @@ import AdminSponsorshipMessages from "./pages/admin/AdminSponsorship"
 import AdminQuizPage from "./pages/admin/AdminQuizPage";
 import AdminQuizBuilder from "./pages/admin/AdminQuizBuilder";
 import AdminQuizResponses from "./pages/admin/AdminQuizResponses";
+import AdminRecruitmentPage from "./pages/admin/AdminRecruitmentPage";
 
 /* ===== PUBLIC DETAILS ===== */
 import AnnouncementsPage from "./pages/AnnouncementsPage"
@@ -72,16 +72,16 @@ function App() {
 
       {/* ===== AUTH ROUTES ===== */}
       <Route path="/login" element={<AdminLogin />} />
-      <Route path="/admin/forgot-password" element={<ForgotPassword />} />
-      <Route path="/admin/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-      {/* ===== ADMIN DASHBOARD (PROTECTED LAYOUT) ===== */}
-      <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+      {/* ===== PORTAL (PROTECTED LAYOUT) ===== */}
+      <Route path="/portal" element={<AdminGuard><AdminLayout /></AdminGuard>}>
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="profile" element={<AdminProfile />} />
 
         <Route path="users" element={<AdminUsersPage />} />
-        <Route path="taxonomy" element={<AdminTaxonomyPage />} /> {/* NEW */}
+        <Route path="taxonomy" element={<AdminTaxonomyPage />} />
         <Route path="roles" element={<AdminRolesPage />} />
         <Route path="team" element={<AdminTeamPage />} />
 
@@ -103,7 +103,8 @@ function App() {
         <Route path="quizzes/:id" element={<AdminQuizBuilder />} />
         <Route path="quizzes/:id/responses" element={<AdminQuizResponses />} />
 
-        <Route path="change-password" element={<ChangePassword />} />
+        <Route path="recruitment" element={<AdminRecruitmentPage />} />
+
         <Route path="audit-logs" element={<AdminAuditLogs />} />
       </Route>
 

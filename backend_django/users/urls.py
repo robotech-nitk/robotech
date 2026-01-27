@@ -16,12 +16,12 @@ router.register(r'sigs', SigViewSet, basename='sigs')
 router.register(r'positions', TeamPositionViewSet, basename='positions') 
 router.register(r'profile-fields', ProfileFieldViewSet, basename='profile_fields') 
 # New
-router.register(r'admin/audit-logs', AuditLogViewSet, basename='audit_logs')
+router.register(r'audit-logs', AuditLogViewSet, basename='audit_logs')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', UserProfileView.as_view(), name='user_profile'),
     path('team/public/', PublicTeamView.as_view(), name='team_public'),
 ]

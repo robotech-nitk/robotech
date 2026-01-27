@@ -13,10 +13,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [GlobalPermission]
 
     def get_queryset(self):
-        # Simple Shared Visibility: All authenticated see all
-        if self.request.user and self.request.user.is_authenticated:
-            return Project.objects.all().order_by('-created_at')
-        return Project.objects.none()
+        # Allow all visibility for GET if permission allows
+        return Project.objects.all().order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save()
@@ -87,7 +85,11 @@ class ProjectRequestViewSet(viewsets.ModelViewSet):
         join_req = self.get_object()
         # Verify if requester is lead or admin
         user = request.user
-        if not (user.is_superuser or join_req.project.lead == user or user.user_roles.filter(can_manage_projects=True).exists()):
+        is_lead = join_req.project.lead == user
+        has_perm = user.user_roles.filter(can_manage_projects=True).exists()
+        is_web_lead = user.user_roles.filter(name='WEB_LEAD').exists()
+        
+        if not (user.is_superuser or is_lead or has_perm or is_web_lead):
              return Response({"error": "Unauthorized"}, status=403)
              
         join_req.status = 'APPROVED'
@@ -99,7 +101,7 @@ class ProjectRequestViewSet(viewsets.ModelViewSet):
     def reject(self, request, pk=None):
         join_req = self.get_object()
         user = request.user
-        if not (user.is_superuser or join_req.project.lead == user or user.user_roles.filter(can_manage_projects=True).exists()):
+        if not (user.is_superuser or join_req.project.lead == user or user.user_roles.filter(can_manage_projects=True).exists() or user.user_roles.filter(name='WEB_LEAD').exists()):
              return Response({"error": "Unauthorized"}, status=403)
         join_req.status = 'REJECTED'
         join_req.save()

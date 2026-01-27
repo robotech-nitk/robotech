@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../api/axios";
 import { useNavigate } from "react-router-dom";
-
-// SVG ICON
-const GripIcon = () => (
-    <svg className="w-5 h-5 text-gray-500 cursor-move hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16" />
-    </svg>
-);
+import {
+    GripVertical,
+    Plus,
+    RefreshCw,
+    Trash2,
+    Edit3,
+    Link as LinkIcon,
+    Settings2
+} from "lucide-react";
 
 export default function AdminTaxonomyPage() {
     const navigate = useNavigate();
@@ -76,7 +78,7 @@ export default function AdminTaxonomyPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!confirm("Are you sure?")) return;
+        if (!confirm("Are you sure? This action cannot be undone.")) return;
         let endpoint = "/sigs/";
         if (tab === 'fields') endpoint = "/profile-fields/";
         if (tab === 'positions') endpoint = "/positions/";
@@ -85,7 +87,7 @@ export default function AdminTaxonomyPage() {
             await api.delete(`${endpoint}${id}/`);
             loadData();
         } catch (err) {
-            alert("Failed to delete.");
+            alert("Failed to delete. It might be in use.");
         }
     };
 
@@ -102,7 +104,6 @@ export default function AdminTaxonomyPage() {
 
     const handleDragStart = (e, item, index, listType) => {
         dragItem.current = { index, listType };
-        // e.dataTransfer.effectAllowed = "move";
     };
 
     const handleDragEnter = (e, index, listType) => {
@@ -161,177 +162,207 @@ export default function AdminTaxonomyPage() {
 
 
     return (
-        <div className="max-w-5xl mx-auto animate-fade-in pb-20 p-6 min-h-screen">
-            <h1 className="text-3xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-6">
-                Structure Management
-            </h1>
+        <div className="max-w-6xl mx-auto animate-fade-in pb-20 p-4 sm:p-6 min-h-screen">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <button onClick={() => navigate("/portal/dashboard")} className="text-sm text-cyan-400 hover:underline mb-2">← Dashboard</button>
+                    <h1 className="text-3xl md:text-4xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 uppercase tracking-tight">
+                        Structure Command
+                    </h1>
+                </div>
+            </div>
 
             {/* TABS */}
-            <div className="flex gap-4 mb-8 border-b border-white/10 overflow-x-auto">
-                <button onClick={() => setTab("sigs")} className={`pb-2 px-4 whitespace-nowrap transition ${tab === 'sigs' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400'}`}>
+            <div className="flex gap-2 mb-8 border-b border-white/5 overflow-x-auto no-scrollbar scroll-smooth">
+                <button onClick={() => setTab("sigs")} className={`pb-3 px-6 whitespace-nowrap transition-all font-bold tracking-widest text-xs uppercase ${tab === 'sigs' ? 'text-cyan-400 border-b-2 border-cyan-400 bg-cyan-400/5' : 'text-gray-500 hover:text-gray-300'}`}>
                     SIGs (Teams)
                 </button>
-                <button onClick={() => setTab("positions")} className={`pb-2 px-4 whitespace-nowrap transition ${tab === 'positions' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400'}`}>
-                    Positions & Ranks
+                <button onClick={() => setTab("positions")} className={`pb-3 px-6 whitespace-nowrap transition-all font-bold tracking-widest text-xs uppercase ${tab === 'positions' ? 'text-emerald-400 border-b-2 border-emerald-400 bg-emerald-400/5' : 'text-gray-500 hover:text-gray-300'}`}>
+                    Ranks
                 </button>
-                <button onClick={() => setTab("fields")} className={`pb-2 px-4 whitespace-nowrap transition ${tab === 'fields' ? 'text-pink-400 border-b-2 border-pink-400' : 'text-gray-400'}`}>
-                    Profile Fields
+                <button onClick={() => setTab("fields")} className={`pb-3 px-6 whitespace-nowrap transition-all font-bold tracking-widest text-xs uppercase ${tab === 'fields' ? 'text-pink-400 border-b-2 border-pink-400 bg-pink-400/5' : 'text-gray-500 hover:text-gray-300'}`}>
+                    Profile Schema
                 </button>
             </div>
 
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex gap-2">
-                    <button onClick={openCreate} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded text-white flex items-center gap-2 transition">
-                        <span className="text-xl font-bold">+</span> Add New {tab === 'sigs' ? "SIG" : tab === 'positions' ? "Position" : "Field"}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={openCreate} className="flex-1 sm:flex-none bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 px-6 py-2.5 rounded-xl text-white flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/20 font-bold text-sm">
+                        <Plus size={18} /> New {tab === 'sigs' ? "SIG" : tab === 'positions' ? "Rank" : "Field"}
                     </button>
-                    <button onClick={loadData} className="bg-white/10 hover:bg-white/20 px-3 py-2 rounded text-gray-300 hover:text-white transition" title="Refresh">
-                        🔄
+                    <button onClick={loadData} className="bg-white/5 hover:bg-white/10 p-2.5 rounded-xl text-gray-400 hover:text-white transition border border-white/10" title="Refresh">
+                        <RefreshCw size={18} />
                     </button>
                 </div>
-                {(tab === 'sigs' || tab === 'fields') && <span className="text-xs text-gray-500 italic">Drag items to reorder</span>}
+                {(tab === 'sigs' || tab === 'fields') && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg">
+                        <GripVertical size={14} className="text-gray-500" />
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">DRAG ELEMENTS TO REORDER</span>
+                    </div>
+                )}
             </div>
 
-            {/* SIGS */}
-            {tab === 'sigs' && (
-                <div className="grid gap-3">
-                    {sigs.map((sig, index) => (
-                        <div
-                            key={sig.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, sig, index, 'sigs')}
-                            onDragEnter={(e) => handleDragEnter(e, index, 'sigs')}
-                            onDragEnd={handleDragEnd}
-                            onDragOver={(e) => e.preventDefault()}
-                            className="bg-white/5 p-4 rounded-lg flex items-center gap-4 group border border-white/5 hover:border-cyan-500/30 transition cursor-default"
-                        >
-                            <div className="p-2 bg-black/20 rounded cursor-move text-gray-500 hover:text-cyan-400"><GripIcon /></div>
-
+            {/* LISTS */}
+            <div className="space-y-4">
+                {/* SIGS */}
+                {tab === 'sigs' && sigs.map((sig, index) => (
+                    <div
+                        key={sig.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, sig, index, 'sigs')}
+                        onDragEnter={(e) => handleDragEnter(e, index, 'sigs')}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => e.preventDefault()}
+                        className="bg-[#0d0e14] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-4 group border border-white/5 hover:border-cyan-500/30 transition shadow-lg"
+                    >
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="p-2 bg-black/40 rounded-lg cursor-grab active:cursor-grabbing text-gray-600 hover:text-cyan-400 transition border border-white/5 shrink-0">
+                                <GripVertical size={20} />
+                            </div>
                             <div className="flex-1">
                                 <h3 className="font-bold text-lg text-cyan-400">{sig.name}</h3>
-                                <p className="text-gray-400 text-sm">{sig.description || "No description"}</p>
-                            </div>
-                            <div className="flex gap-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
-                                <button onClick={() => { setEditItem(sig); setIsFormOpen(true); }} className="text-cyan-300 hover:underline">Edit</button>
-                                <button onClick={() => handleDelete(sig.id)} className="text-red-400 hover:underline">Delete</button>
+                                <p className="text-gray-500 text-sm mt-0.5">{sig.description || "No transmission description available."}</p>
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <div className="flex gap-2 sm:opacity-0 group-hover:opacity-100 transition-all duration-300 justify-end mt-4 sm:mt-0">
+                            <button onClick={() => { setEditItem(sig); setIsFormOpen(true); }} className="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg hover:bg-cyan-500/20 transition border border-cyan-500/20" title="Edit">
+                                <Edit3 size={18} />
+                            </button>
+                            <button onClick={() => handleDelete(sig.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition border border-red-500/20" title="Delete">
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
 
-            {/* POSITIONS (No DnD yet, Rank sorted) */}
-            {tab === 'positions' && (
-                <div className="grid gap-3">
-                    {positions.map(p => (
-                        <div key={p.id} className="bg-white/5 p-4 rounded-lg flex items-center justify-between group border border-white/5 hover:border-green-500/30 transition">
-                            <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded bg-green-500/20 text-green-400 flex items-center justify-center font-bold text-xs" title="Rank">{p.rank}</span>
-                                <div>
-                                    <h3 className="font-bold text-lg text-white">{p.name}</h3>
-                                    {p.role_link && (
-                                        <button onClick={() => navigate("/admin/roles")} className="text-xs text-gray-400 hover:text-cyan-400 transition bg-white/5 px-2 py-0.5 rounded mt-1 flex items-center gap-1">
-                                            <span>🔗 Linked Role: {roles.find(r => r.id === p.role_link)?.name || "Unknown"}</span>
-                                        </button>
-                                    )}
-                                </div>
+                {/* POSITIONS */}
+                {tab === 'positions' && positions.map(p => (
+                    <div key={p.id} className="bg-[#0d0e14] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 group border border-white/5 hover:border-emerald-500/30 transition shadow-lg">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex flex-col items-center justify-center border border-emerald-500/20 shrink-0" title="System Rank">
+                                <span className="text-[10px] font-black opacity-40 leading-none">RANK</span>
+                                <span className="text-lg font-bold font-[Orbitron]">{p.rank}</span>
                             </div>
-                            <div className="flex gap-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
-                                <button onClick={() => { setEditItem(p); setIsFormOpen(true); }} className="text-green-300 hover:underline">Edit</button>
-                                <button onClick={() => handleDelete(p.id)} className="text-red-400 hover:underline">Delete</button>
+                            <div>
+                                <h3 className="font-bold text-lg text-white uppercase tracking-tight">{p.name}</h3>
+                                {p.role_link && (
+                                    <button onClick={() => navigate("/portal/roles")} className="text-[10px] text-emerald-500/80 hover:text-emerald-400 transition bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10 mt-1.5 flex items-center gap-1.5 uppercase font-bold tracking-widest">
+                                        <LinkIcon size={12} /> Access: {roles.find(r => r.id === p.role_link)?.name || "Unknown"}
+                                    </button>
+                                )}
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <div className="flex gap-2 sm:opacity-0 group-hover:opacity-100 transition-all duration-300 justify-end mt-4 sm:mt-0">
+                            <button onClick={() => { setEditItem(p); setIsFormOpen(true); }} className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition border border-emerald-500/20" title="Edit">
+                                <Edit3 size={18} />
+                            </button>
+                            <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition border border-red-500/20" title="Delete">
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
 
-            {/* FIELDS */}
-            {tab === 'fields' && (
-                <div className="grid gap-3">
-                    {fields.map((f, index) => (
-                        <div
-                            key={f.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, f, index, 'fields')}
-                            onDragEnter={(e) => handleDragEnter(e, index, 'fields')}
-                            onDragEnd={handleDragEnd}
-                            onDragOver={(e) => e.preventDefault()}
-                            className="bg-white/5 p-4 rounded-lg flex items-center gap-4 group border border-white/5 hover:border-pink-500/30 transition"
-                        >
-                            <div className="p-2 bg-black/20 rounded cursor-move text-gray-500 hover:text-pink-400"><GripIcon /></div>
-
-                            <div className="flex-1">
+                {/* FIELDS */}
+                {tab === 'fields' && fields.map((f, index) => (
+                    <div
+                        key={f.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, f, index, 'fields')}
+                        onDragEnter={(e) => handleDragEnter(e, index, 'fields')}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => e.preventDefault()}
+                        className="bg-[#0d0e14] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-4 group border border-white/5 hover:border-pink-500/30 transition shadow-lg"
+                    >
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="p-2 bg-black/40 rounded-lg cursor-grab active:cursor-grabbing text-gray-600 hover:text-pink-400 transition border border-white/5 shrink-0">
+                                <GripVertical size={20} />
+                            </div>
+                            <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <h3 className="font-bold text-lg text-pink-400">{f.label}</h3>
-                                    <span className="text-[10px] uppercase tracking-wider bg-gray-800 px-2 py-0.5 rounded text-gray-400">{f.field_type}</span>
+                                    <h3 className="font-bold text-lg text-pink-400 truncate tracking-tight">{f.label}</h3>
+                                    <span className="text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400">{f.field_type}</span>
                                     {f.limit_to_sig && (
-                                        <span className="text-[10px] bg-cyan-900/50 px-2 py-0.5 rounded text-cyan-200 border border-cyan-500/20">
-                                            Only: {sigs.find(s => s.id === f.limit_to_sig)?.name || "SIG#" + f.limit_to_sig}
+                                        <span className="text-[9px] font-black uppercase tracking-widest bg-cyan-900/20 px-2 py-0.5 rounded text-cyan-400 border border-cyan-500/20">
+                                            Sector: {sigs.find(s => s.id === f.limit_to_sig)?.name || "SIG#" + f.limit_to_sig}
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-gray-500 text-xs font-mono mt-1 w-full truncate">Key: {f.key}</p>
-                            </div>
-                            <div className="flex gap-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
-                                <button onClick={() => { setEditItem(f); setIsFormOpen(true); }} className="text-pink-300 hover:underline">Edit</button>
-                                <button onClick={() => handleDelete(f.id)} className="text-red-400 hover:underline">Delete</button>
+                                <p className="text-gray-600 text-[10px] font-mono mt-1 uppercase tracking-tighter truncate">Identifier: {f.key}</p>
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <div className="flex gap-2 sm:opacity-0 group-hover:opacity-100 transition-all duration-300 justify-end mt-4 sm:mt-0">
+                            <button onClick={() => { setEditItem(f); setIsFormOpen(true); }} className="p-2 bg-pink-500/10 text-pink-400 rounded-lg hover:bg-pink-500/20 transition border border-pink-500/20" title="Edit">
+                                <Edit3 size={18} />
+                            </button>
+                            <button onClick={() => handleDelete(f.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition border border-red-500/20" title="Delete">
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             {/* MODAL */}
             {isFormOpen && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                    <form onSubmit={handleSave} className="bg-[#111] border border-white/20 p-6 rounded-xl w-full max-w-md space-y-4 shadow-xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                        <h2 className="text-xl font-bold text-white mb-4">
-                            {editItem.id ? "Edit Item" : "Create New Item"}
-                        </h2>
+                <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in overflow-y-auto">
+                    <form onSubmit={handleSave} className="glass border border-white/10 p-5 sm:p-8 rounded-3xl w-full max-w-md space-y-6 shadow-2xl animate-scale-in my-auto relative max-h-[95vh] overflow-y-auto custom-scrollbar">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white transition group">
+                            <span className="text-xl">&times;</span>
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                <Settings2 size={24} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-white tracking-tight font-[Orbitron]">
+                                {editItem.id ? "Resource Config" : "New Resource"}
+                            </h2>
+                        </div>
 
                         {tab === 'sigs' && (
-                            <>
-                                <div><label className="text-xs text-gray-400 block mb-1">Name</label><input required className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-cyan-500 outline-none" value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} /></div>
-                                <div><label className="text-xs text-gray-400 block mb-1">Description</label><textarea className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-cyan-500 outline-none" value={editItem.description} onChange={e => setEditItem({ ...editItem, description: e.target.value })} /></div>
-                            </>
+                            <div className="space-y-4">
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Sector Name</label><input required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition" value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} placeholder="e.g. Aero / Bot" /></div>
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Mission Parameters</label><textarea className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-400 outline-none transition h-24" value={editItem.description} onChange={e => setEditItem({ ...editItem, description: e.target.value })} placeholder="Describe this sector's goals..." /></div>
+                            </div>
                         )}
 
                         {tab === 'positions' && (
-                            <>
-                                <div><label className="text-xs text-gray-400 block mb-1">Position Title</label><input required className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-green-500 outline-none" value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} /></div>
-                                <div><label className="text-xs text-gray-400 block mb-1">Rank Order (1=Top)</label><input type="number" required className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-green-500 outline-none" value={editItem.rank} onChange={e => setEditItem({ ...editItem, rank: parseInt(e.target.value) })} /></div>
+                            <div className="space-y-4">
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Rank Title</label><input required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-emerald-500 outline-none transition" value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} placeholder="e.g. Sector Lead" /></div>
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">System Rank (1=Highest)</label><input type="number" required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-emerald-500 outline-none transition" value={editItem.rank} onChange={e => setEditItem({ ...editItem, rank: parseInt(e.target.value) })} /></div>
 
                                 <div>
-                                    <label className="text-xs text-gray-400 block mb-1">Link to Role (Permissions)</label>
-                                    <select className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-green-500 outline-none" value={editItem.role_link || ""} onChange={e => setEditItem({ ...editItem, role_link: e.target.value ? parseInt(e.target.value) : null })}>
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Link Authorization Role</label>
+                                    <select className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-emerald-500 outline-none transition" value={editItem.role_link || ""} onChange={e => setEditItem({ ...editItem, role_link: e.target.value ? parseInt(e.target.value) : null })}>
                                         <option value="">-- No Permissions --</option>
                                         {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                     </select>
-                                    <p className="text-[10px] text-gray-500 mt-1">Users with this position will automatically inherit permissions from the selected role.</p>
+                                    <p className="text-[9px] text-gray-600 mt-2 font-medium italic px-1 opacity-70">Users assigned to this rank will automatically inherit these protocols.</p>
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         {tab === 'fields' && (
-                            <>
-                                <div><label className="text-xs text-gray-400 block mb-1">Label</label><input required className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-pink-500 outline-none" value={editItem.label} onChange={e => setEditItem({ ...editItem, label: e.target.value })} /></div>
-                                <div><label className="text-xs text-gray-400 block mb-1">Key (Internal Variable)</label><input className="w-full bg-black/40 border border-white/20 rounded p-2 text-white font-mono text-sm focus:border-pink-500 outline-none" value={editItem.key} onChange={e => setEditItem({ ...editItem, key: e.target.value })} disabled={!!editItem.id} placeholder="Auto-generated if empty" /></div>
-                                <div><label className="text-xs text-gray-400 block mb-1">Type</label><select className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-pink-500 outline-none" value={editItem.field_type} onChange={e => setEditItem({ ...editItem, field_type: e.target.value })}><option value="text">Text Input</option><option value="url">URL Link</option><option value="date">Date Picker</option><option value="number">Number</option><option value="textarea">Long Text Area</option></select></div>
+                            <div className="space-y-4">
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Display Label</label><input required className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-pink-500 outline-none transition" value={editItem.label} onChange={e => setEditItem({ ...editItem, label: e.target.value })} placeholder="e.g. GitHub Link" /></div>
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">System Identifier</label><input className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white font-mono text-xs focus:border-pink-500 outline-none transition disabled:opacity-50" value={editItem.key} onChange={e => setEditItem({ ...editItem, key: e.target.value })} disabled={!!editItem.id} placeholder="Auto-generated if empty" /></div>
+                                <div><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Protocol Type</label><select className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-pink-500 outline-none transition" value={editItem.field_type} onChange={e => setEditItem({ ...editItem, field_type: e.target.value })}><option value="text">Standard Vector (Text)</option><option value="url">Network Link (URL)</option><option value="date">Temporal Point (Date)</option><option value="number">Scalar Value (Number)</option><option value="textarea">Extended Logs (Textarea)</option></select></div>
 
-                                {/* SIG LIMITER */}
                                 <div>
-                                    <label className="text-xs text-gray-400 block mb-1">Show Only For SIG (Optional)</label>
-                                    <select className="w-full bg-black/40 border border-white/20 rounded p-2 text-white focus:border-pink-500 outline-none" value={editItem.limit_to_sig || ""} onChange={e => setEditItem({ ...editItem, limit_to_sig: e.target.value ? parseInt(e.target.value) : null })}>
-                                        <option value="">-- All Public Profiles --</option>
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1.5 ml-1">Sector Restriction (Optional)</label>
+                                    <select className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-pink-500 outline-none transition" value={editItem.limit_to_sig || ""} onChange={e => setEditItem({ ...editItem, limit_to_sig: e.target.value ? parseInt(e.target.value) : null })}>
+                                        <option value="">-- Global Deployment --</option>
                                         {sigs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
-                                    <p className="text-[10px] text-gray-500 mt-1">If selected, this field will ONLY appear on profiles belonging to this SIG.</p>
+                                    <p className="text-[9px] text-gray-600 mt-2 font-medium italic px-1 opacity-70">If locked, this schema field only appears for members of the selected sector.</p>
                                 </div>
-                            </>
+                            </div>
                         )}
 
-                        <div className="flex gap-3 pt-4 border-t border-white/10 mt-4">
-                            <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded text-gray-300 transition">Cancel</button>
-                            <button type="submit" className="flex-1 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 rounded text-white font-bold transition shadow-lg shadow-cyan-500/20">Save</button>
+                        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/5">
+                            <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-500 font-bold tracking-widest text-[10px] uppercase transition border border-white/5 order-2 sm:order-1">Abort</button>
+                            <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl text-white font-black tracking-widest text-[10px] uppercase transition shadow-lg shadow-cyan-500/20 order-1 sm:order-2">Confirm</button>
                         </div>
                     </form>
                 </div>
@@ -339,3 +370,4 @@ export default function AdminTaxonomyPage() {
         </div>
     );
 }
+

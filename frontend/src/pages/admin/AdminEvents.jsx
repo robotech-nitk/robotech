@@ -83,28 +83,26 @@ export default function AdminEvents() {
 
       {/* ===== BACK NAV ===== */}
       <button
-        onClick={() => navigate("/admin/dashboard")}
-        className="text-sm text-cyan-400 hover:underline mb-4 w-fit"
+        onClick={() => navigate("/portal/dashboard")}
+        className="text-sm text-cyan-400 hover:underline mb-4 w-fit flex items-center gap-1"
       >
         ← Back to Dashboard
       </button>
 
       {/* ===== HEADER ===== */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-cyan-400">
-          Events
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-[Orbitron] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 uppercase tracking-tight">
+            Event Management
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Coordinate club events and track responder metrics.</p>
+        </div>
 
         <button
-          onClick={() => navigate("/admin/events/new")}
-          className="
-            w-full sm:w-auto
-            bg-cyan-500 hover:bg-cyan-600
-            text-black px-4 py-2
-            rounded-lg
-          "
+          onClick={() => navigate("/portal/events/new")}
+          className="bg-cyan-600 hover:bg-cyan-500 text-white font-black px-6 py-3 rounded-xl shadow-lg shadow-cyan-500/20 transition uppercase tracking-widest text-[10px]"
         >
-          + Create Event
+          + New Log
         </button>
       </div>
 
@@ -135,10 +133,10 @@ export default function AdminEvents() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => navigate(`/admin/events/${e.id}`)}
-                className="text-cyan-400 hover:underline"
+                onClick={() => navigate(`/portal/events/${e.id}`)}
+                className="text-cyan-400 hover:text-white transition uppercase font-black text-[10px] tracking-widest"
               >
-                Edit
+                Edit Parameters
               </button>
 
               <button

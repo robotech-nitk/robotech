@@ -9,10 +9,8 @@ class EventViewSet(viewsets.ModelViewSet):
     permission_classes = [GlobalPermission]
 
     def get_queryset(self):
-        # Shared visibility for authenticated users
-        if self.request.user and self.request.user.is_authenticated:
-            return Event.objects.all().order_by('-date')
-        return Event.objects.none()
+        # Allow visibility for all (GlobalPermission handles read/write)
+        return Event.objects.all().order_by('-date')
 
     def perform_create(self, serializer):
         serializer.save()
