@@ -14,6 +14,11 @@ class Event(models.Model):
         ('PERSONAL', 'Personal'),
     ]
 
+    VISIBILITY_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('PUBLISHED', 'Published'),
+    ]
+
     title = models.CharField(max_length=200)
     description = models.TextField()
     date = models.DateTimeField(verbose_name='Event Date')
@@ -25,6 +30,7 @@ class Event(models.Model):
 
     location = models.CharField(max_length=200, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='UPCOMING')
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='DRAFT')
     
     # Organizers
     lead = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='led_events')

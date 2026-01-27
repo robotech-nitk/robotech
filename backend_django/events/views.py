@@ -9,8 +9,40 @@ class EventViewSet(viewsets.ModelViewSet):
     permission_classes = [GlobalPermission]
 
     def get_queryset(self):
-        # Allow visibility for all (GlobalPermission handles read/write)
-        return Event.objects.all().order_by('-date')
+        from django.db.models import Q
+        user = self.request.user
+        qs = Event.objects.all().order_by('-date')
+
+        # 1. Anonymous / Public users: Only Published Global/SIG events
+        if not user.is_authenticated:
+            return qs.filter(visibility='PUBLISHED').exclude(scope='PERSONAL')
+
+        # 2. Superusers: See all
+        if user.is_superuser:
+            return qs
+
+        # 3. Authenticated Users (Admins/Members):
+        # - See all PUBLISHED Global/SIG events
+        # - See OWN Personal events (Draft or Published)
+        # - See DRAFT events if they have management permissions (simplified: if lead or can_manage_events)
+        
+        # Check if user has global event management permission
+        has_perm = user.user_roles.filter(can_manage_events=True).exists()
+        
+        if has_perm:
+            # Manager: See all events except OTHER people's Personal events
+            return qs.exclude(scope='PERSONAL', lead__isnull=False).exclude(scope='PERSONAL', lead__ne=user) | qs.filter(scope='PERSONAL', lead=user)
+            # Simplified: Exclude Personal events where lead != user
+            # Django syntax: ~Q(scope='PERSONAL') | Q(lead=user)
+            return qs.filter(~Q(scope='PERSONAL') | Q(lead=user))
+        
+        # Standard Member/Lead:
+        return qs.filter(
+            # Public events
+            Q(visibility='PUBLISHED', scope__in=['GLOBAL', 'SIG']) | 
+            # My events (any status)
+            Q(lead=user)
+        ).distinct()
 
     def perform_create(self, serializer):
         # Set the lead to the current user if not explicitly provided
