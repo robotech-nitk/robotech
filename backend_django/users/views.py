@@ -111,8 +111,20 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def _update_profile(self, user, data, image_file):
         profile, created = MemberProfile.objects.get_or_create(user=user)
+        request_user = self.request.user
+        
+        # Security permission check helper
+        has_security_perm = (
+            request_user.is_superuser or 
+            request_user.user_roles.filter(can_manage_security=True).exists()
+        )
+
         def set_if(field):
             if field in data: 
+                # SENSITIVE FIELDS GUARD
+                if field in ['position', 'role', 'sig'] and not has_security_perm:
+                    return # Skip update if no permission
+                    
                 val = data[field]
                 if field == 'year_of_joining':
                      try: val = int(val)
@@ -140,20 +152,28 @@ class UserViewSet(viewsets.ModelViewSet):
             except: pass
 
         if 'sigs' in data:
-            try:
-                # Expecting list of IDs
-                s_ids = data['sigs']
-                if hasattr(data, 'getlist'): s_ids = data.getlist('sigs')
-                
-                # If json string
-                if isinstance(s_ids, str): 
-                     try: s_ids = json.loads(s_ids)
-                     except: pass
-                
-                if isinstance(s_ids, list):
-                    profile.sigs.set(s_ids)
-            except Exception as e:
-                print("Error setting SIGs in UserViewSet:", e)
+            if has_security_perm:
+                try:
+                    # Expecting list of IDs
+                    s_ids = data['sigs']
+                    if hasattr(data, 'getlist'): s_ids = data.getlist('sigs')
+                    
+                    # If json string
+                    if isinstance(s_ids, str): 
+                        try: s_ids = json.loads(s_ids)
+                        except: pass
+                    
+                    if isinstance(s_ids, list):
+                        # Ensure IDs are ints
+                        valid_ids = []
+                        for i in s_ids:
+                            try: valid_ids.append(int(i))
+                            except: pass
+                        profile.sigs.set(valid_ids)
+                except Exception as e:
+                    print("Error setting SIGs in UserViewSet:", e)
+            else:
+                pass # Ignore sigs update attempt if not admin
 
         if image_file: profile.image = image_file
         
@@ -290,14 +310,11 @@ class UserProfileView(APIView):
         if 'image' in request.FILES: profile.image = request.FILES['image']
 
         if 'sigs' in data:
-            try:
-                # Expecting list of IDs e.g. [1, 2] or json string
-                s_ids = data['sigs']
-                if isinstance(s_ids, str): s_ids = json.loads(s_ids)
-                if isinstance(s_ids, list):
-                    profile.sigs.set(s_ids)
-            except Exception as e:
-                print("Error setting SIGs:", e)
+            # Self-update of SIGs is usually NOT allowed. 
+            # User can only request, but direct update is restricted.
+            # Assuming 'sigs' update is blocked here for security unless explicitly allowed policy.
+            # For now, we block it in self-profile update to match strict policy.
+            pass 
         
         profile.save()
         

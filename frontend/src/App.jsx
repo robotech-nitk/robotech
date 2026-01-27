@@ -37,6 +37,8 @@ import AdminQuizPage from "./pages/admin/AdminQuizPage";
 import AdminQuizBuilder from "./pages/admin/AdminQuizBuilder";
 import AdminQuizResponses from "./pages/admin/AdminQuizResponses";
 import AdminRecruitmentPage from "./pages/admin/AdminRecruitmentPage";
+import AdminAttendancePage from "./pages/admin/AdminAttendancePage";
+import AdminAttendanceDetail from "./pages/admin/AdminAttendanceDetail";
 
 /* ===== PUBLIC DETAILS ===== */
 import AnnouncementsPage from "./pages/AnnouncementsPage"
@@ -97,6 +99,8 @@ function App() {
         <Route path="sponsorship" element={<AdminSponsorshipMessages />} />
         <Route path="contactMessages" element={<AdminContactMessages />} />
         <Route path="forms" element={<AdminFormsPage />} />
+        <Route path="attendance" element={<AdminAttendancePage />} />
+        <Route path="attendance/:id" element={<AdminAttendanceDetail />} />
         <Route path="forms/:id" element={<AdminFormBuilder />} />
         <Route path="forms/:id/responses" element={<AdminFormResponses />} />
         <Route path="quizzes" element={<AdminQuizPage />} />
