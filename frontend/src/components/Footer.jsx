@@ -26,7 +26,7 @@ export default function Footer() {
             />
             <div>
               <h3 className="text-xl font-semibold text-white">
-                Robotech Club
+                RoboTech NITK
               </h3>
               <p className="text-cyan-400 text-sm">
                 NITK | Est. 2025
@@ -171,7 +171,7 @@ export default function Footer() {
 
       {/* Bottom Line */}
       <div className="border-t border-white/10 py-4 text-center text-xs text-gray-500">
-        © {currentYear} Robotech NITK — All Rights Reserved.
+        © {currentYear} RoboTech NITK — All Rights Reserved.
       </div>
     </footer>
   );

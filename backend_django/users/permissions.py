@@ -42,6 +42,9 @@ class GlobalPermission(permissions.BasePermission):
         if view_name in public_read_views and request.method in permissions.SAFE_METHODS:
             return True
 
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
         if not user or not user.is_authenticated:
             return False
         

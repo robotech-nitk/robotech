@@ -94,7 +94,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 flex flex-col justify-center items-center h-full text-center px-6">
           <h1 className="text-5xl md:text-7xl font-[Orbitron] font-bold text-cyan-400 tracking-wider drop-shadow-[0_0_25px_#00fff2]">
-            ROBOTECH CLUB
+            RoboTech NITK
           </h1>
 
           <p className="text-gray-300 text-lg md:text-xl mt-6 max-w-2xl">
