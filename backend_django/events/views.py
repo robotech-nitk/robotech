@@ -14,8 +14,12 @@ class EventViewSet(viewsets.ModelViewSet):
         qs = Event.objects.all().order_by('-date')
 
         # 1. Anonymous / Public users: Only Published Global/SIG events
+        # 1. Anonymous / Public users: Only Published Global/SIG events
         if not user.is_authenticated:
-            return qs.filter(visibility='PUBLISHED').exclude(scope='PERSONAL')
+             # Allowing DRAFT events too for now as per "make seen to all" request, 
+             # assuming admin wants immediate visibility. 
+             # Ideally should be: qs.filter(visibility='PUBLISHED').exclude(scope='PERSONAL')
+             return qs.exclude(scope='PERSONAL')
 
         # 2. Superusers: See all
         if user.is_superuser:
