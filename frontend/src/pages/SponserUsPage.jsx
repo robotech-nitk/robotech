@@ -3,6 +3,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer"
+import api from "../api/axios";
 
 /* ================= CONSTANTS ================= */
 
@@ -117,16 +118,15 @@ export default function SponsorUsPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/sponsorship/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form)
-        }
-      );
+      await api.post("/sponsorship/", form);
 
-      if (res.status === 429) {
+      setSuccess(true);
+      setForm(initialForm);
+      setTouched(initialTouched);
+      setSubmitAttempted(false);
+      showToast("Sponsorship request submitted successfully!", "success");
+    } catch (err) {
+      if (err.response?.status === 429) {
         showToast(
           "Too many requests. Please try again after some time.",
           "error"
@@ -136,19 +136,10 @@ export default function SponsorUsPage() {
           () => setRateLimited(false),
           5 * 60 * 1000
         );
-        return;
-      }
-
-      if (!res.ok) {
+      } else {
+        console.error(err);
         showToast("Submission failed. Please try again later.", "error");
-        return;
       }
-
-      setSuccess(true);
-      setForm(initialForm);
-      setTouched(initialTouched);
-      setSubmitAttempted(false);
-      showToast("Sponsorship request submitted successfully!", "success");
     } finally {
       submittingRef.current = false;
       setLoading(false);

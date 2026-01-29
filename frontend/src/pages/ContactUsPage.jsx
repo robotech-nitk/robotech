@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import api from "../api/axios";
 
 export default function ContactUs() {
   const [submitting, setSubmitting] = useState(false);
@@ -56,24 +57,12 @@ export default function ContactUs() {
     setSubmitting(true);
     setSuccess(false);
 
-
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/contact-messages/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(formValues),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Contact form submission failed");
-      }
-
+      const res = await api.post("/contact-messages/", formValues);
+      // api.post returns the response object directly, no need for res.ok check as axios throws on error (caught in catch)
+      // if (!res.ok) throw new Error(...) is not needed with axios interceptors usually, but let's keep logic simple.
+      // With axios, success is 2xx.
       setSuccess(true);
-
       setFormValues({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
       console.error("Contact form error:", err);
@@ -87,7 +76,6 @@ export default function ContactUs() {
     <>
       <Navbar />
 
-      {/* Background Video */}
       <video
         autoPlay
         muted
@@ -239,19 +227,21 @@ export default function ContactUs() {
       </main>
 
       {/* Custom Toaster */}
-      {toast.show && (
-        <div
-          className={`fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-sm z-50
+      {
+        toast.show && (
+          <div
+            className={`fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-sm z-50
             ${toast.type === "success"
-              ? "bg-green-600"
-              : toast.type === "error"
-                ? "bg-red-600"
-                : "bg-indigo-600"
-            }`}
-        >
-          {toast.message}
-        </div>
-      )}
+                ? "bg-green-600"
+                : toast.type === "error"
+                  ? "bg-red-600"
+                  : "bg-indigo-600"
+              }`}
+          >
+            {toast.message}
+          </div>
+        )
+      }
 
       <Footer />
 

@@ -20,7 +20,7 @@ class RecruitmentDriveViewSet(viewsets.ModelViewSet):
         drive = RecruitmentDrive.objects.filter(is_active=True, is_public=True).first()
         if drive:
             return Response(RecruitmentDriveSerializer(drive).data)
-        return Response(status=404)
+        return Response(None)
 
 class TimelineEventViewSet(viewsets.ModelViewSet):
     queryset = TimelineEvent.objects.all()
