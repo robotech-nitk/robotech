@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import { buildMediaUrl } from "../../../utils/mediaUrl";
+import { buildMediaUrl } from "../../utils/mediaUrl";
 
 export default function AdminGalleryPage() {
   const navigate = useNavigate();

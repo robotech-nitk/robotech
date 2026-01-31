@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import api from "../../api/axios";
+import { buildMediaUrl } from "../../utils/mediaUrl";
 
 // Icons
 const TaskIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01" /></svg>;
@@ -281,7 +282,7 @@ export default function ProjectDashboard() {
             <div className="min-h-[500px]">
                 {activeTab === 'overview' && <OverviewTab project={project} />}
                 {activeTab === 'tasks' && <TasksTab project={project} user={user} allUsers={allUsers} onUpdate={loadProject} />}
-                {activeTab === 'discussions' && <DiscussionsTab project={project} user={user} onUpdate={loadProject} unreadMsgIds={unreadMsgIds} setUnreadMsgIds={setUnreadMsgIds} />}
+                {activeTab === 'discussions' && <DiscussionsTab project={project} setProject={setProject} user={user} onUpdate={loadProject} unreadMsgIds={unreadMsgIds} setUnreadMsgIds={setUnreadMsgIds} />}
                 {activeTab === 'team' && <TeamTab project={project} user={user} allUsers={allUsers} onUpdate={loadProject} />}
                 {activeTab === 'manage' && <ManagementTab project={project} allUsers={allUsers} onUpdate={loadProject} />}
             </div>
@@ -433,7 +434,7 @@ function TasksTab({ project, user, allUsers, onUpdate }) {
     );
 }
 
-function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds }) {
+function DiscussionsTab({ project, setProject, user, onUpdate, unreadMsgIds, setUnreadMsgIds }) {
     const [msg, setMsg] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
     const activeThreadId = parseInt(searchParams.get("thread"));
@@ -466,29 +467,41 @@ function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds
     const handleSendMsg = async (e) => {
         e.preventDefault();
         if (!msg.trim() || !activeThreadId) return;
+
+        // 1. Capture message for optimistic update
+        const optimisticMsg = {
+            id: Date.now(), // Temporary ID
+            content: msg,
+            author: user.id,
+            author_details: { username: user.username, profile: user.profile },
+            created_at: new Date().toISOString()
+        };
+
         try {
-            const res = await api.post("/messages/", { content: msg, thread: activeThreadId });
+            // Append locally immediately for no-lag experience
+            setProject(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    threads: prev.threads.map(t =>
+                        t.id === activeThreadId
+                            ? { ...t, messages: [...(t.messages || []), optimisticMsg] }
+                            : t
+                    )
+                };
+            });
             setMsg("");
 
-            // Manual local update to avoid full reload
-            onUpdate(false); // Don't trigger full reload
-            // Manually append message to state (Optimistic-ish / Instant feedback)
-            // But actually we should let the poller pick it up OR inject it.
-            // Better: trigger a single thread refresh or just let next poll handle it?
-            // User expects instant feedback. Let's force a lightweight sync immediately or just inject.
-            // Since we have setProject in parent, we can't easily inject deep.
-            // Compromise: Force a "thread-only" reload or just wait for poll? 
-            // Wait for poll is laggy. Let's call loadProject(true) aka silent reload for now 
-            // BUT we just optimized loadProject away.
-            // Fix: We need to inject the new message into the project state.
-            // Passed down props don't allow easy deep mutation.
-            // Fallback: trigger silent reload (the old way) is safe but heavy.
-            // New way: Call Sync immediately.
-            // We can't easily trigger the poll effect manually.
-            // Simplest safe approach:
-            onUpdate(true); // Triggers full loadProject(true) which is now the fallback for heavy updates.
-            // Wait, we optimized the poller, but loadProject is still available for manual actions!
-        } catch (err) { console.error(err); }
+            // 2. Transmit to server
+            await api.post("/messages/", { content: optimisticMsg.content, thread: activeThreadId });
+
+            // 3. Silent sync to get real IDs/timestamps from server
+            onUpdate(true);
+        } catch (err) {
+            console.error(err);
+            alert("Transmission failed. Re-syncing...");
+            onUpdate(true); // Re-sync to remove optimistic message if it failed
+        }
     }
 
     const handleToggleEphemeral = async (id) => {

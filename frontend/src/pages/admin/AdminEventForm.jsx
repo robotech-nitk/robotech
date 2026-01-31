@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../../api/axios";
-import { buildMediaUrl } from "../../../utils/mediaUrl";
+import { buildMediaUrl } from "../../utils/mediaUrl";
 
 /* ===== BANNER VALIDATION ===== */
 const MAX_BANNER_SIZE = 2 * 1024 * 1024; // 2 MB
