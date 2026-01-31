@@ -113,6 +113,7 @@ class GlobalPermission(permissions.BasePermission):
             'QuizAttemptViewSet': 'can_manage_forms',
             'RecruitmentDriveViewSet': 'can_manage_team',
             'TimelineEventViewSet': 'can_manage_team',
+            'OptionViewSet': 'can_manage_forms',
         }
 
         if view_name == 'UserViewSet' and request.method in permissions.SAFE_METHODS:
