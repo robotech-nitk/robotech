@@ -522,6 +522,50 @@ function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds
 
     const currentThread = project.threads?.find(t => t.id === activeThreadId);
 
+    const [typers, setTypers] = useState([]);
+    const [isTyping, setIsTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
+    const lastSentRef = useRef(0);
+
+    // Typing Signal Sender (Client-Side Throttling)
+    const handleTypingInput = (e) => {
+        setMsg(e.target.value);
+
+        if (!activeThreadId) return;
+
+        // 1. Clear existing timeout (Debounce stop)
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        // 2. Set timeout to eventually turn off flag locally (visual)
+        setIsTyping(true);
+        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+
+        // 3. Send Signal to Server (Throttled: Max once every 2s)
+        const now = Date.now();
+        if (now - lastSentRef.current > 2000) {
+            lastSentRef.current = now;
+            // Fire and forget - low priority
+            api.post(`/threads/${activeThreadId}/signal_typing/`).catch(() => { });
+        }
+    };
+
+    // Typing Status Poller (Lightweight)
+    useEffect(() => {
+        if (!activeThreadId || document.hidden) return;
+
+        const pollTypers = async () => {
+            try {
+                const res = await api.get(`/threads/${activeThreadId}/get_typing_status/`);
+                setTypers(res.data.typers || []);
+            } catch (err) { }
+        };
+
+        const interval = setInterval(pollTypers, 3000); // Check every 3s
+        pollTypers(); // Initial
+
+        return () => clearInterval(interval);
+    }, [activeThreadId]);
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[600px]">
             {/* Sidebar */}
@@ -605,6 +649,18 @@ function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Typing Indicator Bubble */}
+                            {typers.length > 0 && (
+                                <div className="flex flex-col items-start animate-fade-in">
+                                    <div className="flex items-center gap-1 mb-1 ml-1">
+                                        <span className="text-[10px] text-cyan-400 font-bold tracking-wider animate-pulse">
+                                            {typers.map(u => u.username).join(', ')} is typing...
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
                             {!currentThread.messages?.length && (
                                 <div className="h-full flex flex-col items-center justify-center opacity-20 scale-150">
                                     <span className="text-4xl mb-4">🛡️</span>
@@ -620,7 +676,7 @@ function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds
                                 className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm outline-none focus:border-cyan-500 transition-all font-medium"
                                 placeholder={`Transmit to #${currentThread.title}...`}
                                 value={msg}
-                                onChange={e => setMsg(e.target.value)}
+                                onChange={handleTypingInput}
                             />
                             <button className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all">Send</button>
                         </form>
