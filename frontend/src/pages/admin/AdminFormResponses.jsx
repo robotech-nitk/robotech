@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import { formatDateIST } from "../../utils/dateUtils";
 
 export default function AdminFormResponses() {
     const { id } = useParams();
@@ -186,7 +187,7 @@ export default function AdminFormResponses() {
                                         </td>
                                     ))}
                                     <td className="p-6 text-[10px] text-gray-600 font-mono font-bold uppercase">
-                                        {new Date(res.submitted_at).toLocaleString()}
+                                        {formatDateIST(res.submitted_at)}
                                     </td>
                                     <td className="p-6">
                                         <button

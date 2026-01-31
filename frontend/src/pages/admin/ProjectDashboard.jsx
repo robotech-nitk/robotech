@@ -17,6 +17,7 @@ export default function ProjectDashboard() {
     const [loading, setLoading] = useState(true);
     const [seenMessageIds, setSeenMessageIds] = useState(new Set());
     const [allUsers, setAllUsers] = useState([]);
+    const [unreadMsgIds, setUnreadMsgIds] = useState(new Set());
 
     useEffect(() => {
         if (user) {
@@ -40,21 +41,40 @@ export default function ProjectDashboard() {
             const data = res.data;
 
             // Notification Logic
+            // Notification Logic
             if (isSilent && data.threads) {
+                const newSeen = new Set(seenMessageIds);
+                const newUnread = new Set(unreadMsgIds);
+                let updateUnread = false;
+
+                const currentThreadId = parseInt(searchParams.get("thread"));
+
                 data.threads.forEach(thread => {
                     thread.messages?.forEach(m => {
-                        if (!seenMessageIds.has(m.id)) {
+                        if (!newSeen.has(m.id)) {
                             // It's a new message!
-                            if (m.author !== user.id && Notification.permission === "granted") {
-                                new Notification(`New Signal: #${thread.title}`, {
-                                    body: `${m.author_details?.username}: ${m.content.substring(0, 50)}${m.content.length > 50 ? '...' : ''}`,
-                                    icon: '/favicon.ico'
-                                });
+                            if (m.author !== user.id) {
+                                if (Notification.permission === "granted") {
+                                    new Notification(`New Signal: #${thread.title}`, {
+                                        body: `${m.author_details?.username}: ${m.content.substring(0, 50)}${m.content.length > 50 ? '...' : ''}`,
+                                        icon: '/favicon.ico'
+                                    });
+                                }
+
+                                // Clean logic: If not currently looking at this thread, mark likely unread
+                                if (activeTab !== 'discussions' || currentThreadId !== thread.id) {
+                                    newUnread.add(m.id);
+                                    updateUnread = true;
+                                }
                             }
-                            setSeenMessageIds(prev => new Set(prev).add(m.id));
+                            newSeen.add(m.id);
                         }
                     });
                 });
+
+                setSeenMessageIds(newSeen);
+                if (updateUnread) setUnreadMsgIds(newUnread);
+
             } else if (!isSilent && data.threads) {
                 // Initialize seen IDs on first load
                 const initialIds = new Set();
@@ -149,7 +169,14 @@ export default function ProjectDashboard() {
             <div className="flex items-center gap-1 border-b border-white/10 mb-8 overflow-x-auto no-scrollbar pt-2">
                 <TabButton id="overview" label="Overview" icon="📊" active={activeTab} set={setActiveTab} />
                 <TabButton id="tasks" label="Timeline & Tasks" icon="📑" active={activeTab} set={setActiveTab} />
-                <TabButton id="discussions" label="Threads" icon="💬" active={activeTab} set={setActiveTab} />
+                <TabButton
+                    id="discussions"
+                    label="Threads"
+                    icon="💬"
+                    active={activeTab}
+                    set={setActiveTab}
+                    badge={unreadMsgIds.size > 0 ? unreadMsgIds.size : null}
+                />
                 <TabButton id="team" label="Team" icon="👥" active={activeTab} set={setActiveTab} />
                 {(user.is_superuser || project.lead === user.id) && (
                     <TabButton id="manage" label="Management" icon="⚙️" active={activeTab} set={setActiveTab} />
@@ -160,7 +187,7 @@ export default function ProjectDashboard() {
             <div className="min-h-[500px]">
                 {activeTab === 'overview' && <OverviewTab project={project} />}
                 {activeTab === 'tasks' && <TasksTab project={project} user={user} allUsers={allUsers} onUpdate={loadProject} />}
-                {activeTab === 'discussions' && <DiscussionsTab project={project} user={user} onUpdate={loadProject} />}
+                {activeTab === 'discussions' && <DiscussionsTab project={project} user={user} onUpdate={loadProject} unreadMsgIds={unreadMsgIds} setUnreadMsgIds={setUnreadMsgIds} />}
                 {activeTab === 'team' && <TeamTab project={project} user={user} allUsers={allUsers} onUpdate={loadProject} />}
                 {activeTab === 'manage' && <ManagementTab project={project} allUsers={allUsers} onUpdate={loadProject} />}
             </div>
@@ -168,7 +195,7 @@ export default function ProjectDashboard() {
     );
 }
 
-function TabButton({ id, label, icon, active, set }) {
+function TabButton({ id, label, icon, active, set, badge }) {
     const isActive = active === id;
     return (
         <button
@@ -178,6 +205,11 @@ function TabButton({ id, label, icon, active, set }) {
         >
             <span>{icon}</span>
             <span>{label}</span>
+            {badge && (
+                <span className="bg-red-500 text-white text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center -ml-1 animate-bounce">
+                    {badge > 99 ? '99+' : badge}
+                </span>
+            )}
             {isActive && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" />}
         </button>
     );
@@ -301,12 +333,20 @@ function TasksTab({ project, user, allUsers, onUpdate }) {
     );
 }
 
-function DiscussionsTab({ project, user, onUpdate }) {
+function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds }) {
     const [msg, setMsg] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
     const activeThreadId = parseInt(searchParams.get("thread"));
 
     const setActiveThreadId = (tid) => {
+        // Clear unread for this thread
+        if (tid && unreadMsgIds.size > 0) {
+            const threadMessages = project.threads.find(t => t.id === tid)?.messages || [];
+            const newUnread = new Set(unreadMsgIds);
+            threadMessages.forEach(m => newUnread.delete(m.id));
+            setUnreadMsgIds(newUnread);
+        }
+
         const params = new URLSearchParams(searchParams);
         if (tid) params.set("thread", tid);
         else params.delete("thread");
@@ -375,6 +415,14 @@ function DiscussionsTab({ project, user, onUpdate }) {
                                 className={`w-full text-left p-3 rounded-lg text-xs transition-all flex flex-col gap-1 ${activeThreadId === t.id ? 'bg-cyan-600 text-white shadow-lg' : 'text-gray-400 hover:bg-white/5'}`}
                             >
                                 <span className={`${activeThreadId === t.id ? 'font-bold' : ''}`}># {t.title}</span>
+                                {(() => {
+                                    const unreadCount = t.messages?.filter(m => unreadMsgIds.has(m.id)).length || 0;
+                                    return unreadCount > 0 && (
+                                        <span className="bg-red-500 text-white text-[9px] font-black px-1.5 rounded-full ml-auto">
+                                            {unreadCount}
+                                        </span>
+                                    );
+                                })()}
                                 {t.is_ephemeral && <span className={`text-[8px] font-black uppercase tracking-widest ${activeThreadId === t.id ? 'text-cyan-200' : 'text-orange-500'}`}>⚡ Ephemeral</span>}
                             </button>
                             <button

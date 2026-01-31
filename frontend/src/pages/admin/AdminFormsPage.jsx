@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import { formatDateIST, formatDateOnlyIST } from "../../utils/dateUtils";
 
 export default function AdminFormsPage() {
     const navigate = useNavigate();
@@ -66,8 +67,8 @@ export default function AdminFormsPage() {
             f.title,
             f.description || "",
             f.theme,
-            new Date(f.created_at).toLocaleString(),
-            f.closes_at ? new Date(f.closes_at).toLocaleString() : "Never",
+            formatDateIST(f.created_at),
+            f.closes_at ? formatDateIST(f.closes_at) : "Never",
             f.is_active ? "Yes" : "No",
             f.response_count
         ]);
@@ -127,7 +128,7 @@ export default function AdminFormsPage() {
                                             </span>
                                         );
                                     })()}
-                                    <span className="text-[10px] text-gray-500 font-bold uppercase">{new Date(form.created_at).toLocaleDateString()}</span>
+                                    <span className="text-[10px] text-gray-500 font-bold uppercase">{formatDateOnlyIST(form.created_at)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="text-[8px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400 font-bold uppercase tracking-widest">

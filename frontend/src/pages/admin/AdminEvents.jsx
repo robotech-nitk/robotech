@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { useNavigate } from "react-router-dom";
+import { formatDateIST } from "../../utils/dateUtils";
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -131,11 +132,11 @@ export default function AdminEvents() {
               </p>
               <div className="mt-2 flex flex-wrap gap-4 text-xs">
                 <p className="text-gray-300">
-                  📅 {e.event_date ? new Date(e.event_date).toLocaleString() : "Date TBD"}
+                  📅 {e.event_date ? formatDateIST(e.event_date) : "Date TBD"}
                 </p>
                 {e.due_date && (
                   <p className="text-red-300">
-                    ⏰ Due: {new Date(e.due_date).toLocaleString()}
+                    ⏰ Due: {formatDateIST(e.due_date)}
                   </p>
                 )}
                 <p className="text-gray-500">

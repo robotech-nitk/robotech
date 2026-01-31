@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Copy, Plus, Trash, ExternalLink } from "lucide-react";
 import api from "../../api/axios";
+import { formatDateIST } from "../../utils/dateUtils";
 
 export default function AdminRecruitmentPage() {
     const [drives, setDrives] = useState([]);
@@ -125,8 +126,8 @@ export default function AdminRecruitmentPage() {
                             key={drive.id}
                             onClick={() => setSelectedDrive(drives.find(d => d.id === drive.id))}
                             className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedDrive?.id === drive.id
-                                    ? "bg-orange-500/10 border-orange-500/50"
-                                    : "bg-white/5 border-white/10 hover:bg-white/10"
+                                ? "bg-orange-500/10 border-orange-500/50"
+                                : "bg-white/5 border-white/10 hover:bg-white/10"
                                 }`}
                         >
                             <div className="flex justify-between items-start">
@@ -192,11 +193,11 @@ export default function AdminRecruitmentPage() {
                                                 <div className="text-sm mt-1 flex items-center gap-2">
                                                     {item.original_date && (
                                                         <span className="text-red-400/60 line-through text-xs">
-                                                            {new Date(item.original_date).toLocaleString()}
+                                                            {formatDateIST(item.original_date)}
                                                         </span>
                                                     )}
                                                     <span className={`${item.original_date ? 'text-orange-400 font-bold' : 'text-gray-400'}`}>
-                                                        {new Date(item.date).toLocaleString()}
+                                                        {formatDateIST(item.date)}
                                                     </span>
                                                 </div>
                                             </div>
