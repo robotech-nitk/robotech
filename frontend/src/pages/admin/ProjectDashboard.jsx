@@ -115,46 +115,41 @@ export default function ProjectDashboard() {
             try {
                 // Lightweight Sync Call
                 const res = await api.get(`/projects/${id}/sync_state/`);
-                const { members_status, threads_state } = res.data;
+                const { members_status, threads_state = {} } = res.data;
 
                 // State Update Logic
-                setProject(prev => {
-                    if (!prev) return null;
-
-                    // Diffing logic
-                    const membersChanged = prev.members_details?.some(m => members_status[m.id] && members_status[m.id] !== m.last_login);
-                    const leadChanged = prev.lead_details && members_status[prev.lead_details.id] !== prev.lead_details.last_login;
-
-                    let updatedMembers = prev.members_details;
-                    let updatedLead = prev.lead_details;
-
-                    if (membersChanged) {
-                        updatedMembers = prev.members_details.map(m => ({ ...m, last_login: members_status[m.id] || m.last_login }));
+                // 3. Diffing & Side-Effects (Moved OUT of setProject)
+                let needsThreadReload = false;
+                if (activeTab === 'discussions' && project.threads) {
+                    for (const t of project.threads) {
+                        const serverLastMsgId = threads_state[t.id] || 0;
+                        const localLastMsgId = t.messages?.length > 0 ? t.messages[t.messages.length - 1].id : 0;
+                        if (serverLastMsgId !== localLastMsgId) {
+                            needsThreadReload = true;
+                            break;
+                        }
                     }
-                    if (leadChanged) {
-                        updatedLead = { ...prev.lead_details, last_login: members_status[prev.lead_details.id] || prev.lead_details.last_login };
-                    }
+                }
 
-                    // Thread Logic
-                    let needsThreadReload = false;
-                    if (activeTab === 'discussions') {
-                        prev.threads?.forEach(t => {
-                            const serverLastMsgId = threads_state[t.id] || 0;
-                            const localLastMsgId = t.messages?.length > 0 ? t.messages[t.messages.length - 1].id : 0;
-                            if (serverLastMsgId !== localLastMsgId) needsThreadReload = true;
-                        });
-                    }
+                if (needsThreadReload) {
+                    await loadProject(true);
+                } else {
+                    // Only update members if no thread reload happened
+                    setProject(prev => {
+                        if (!prev) return null;
+                        const membersChanged = prev.members_details?.some(m => members_status[m.id] && members_status[m.id] !== m.last_login);
+                        const leadChanged = prev.lead_details && members_status[prev.lead_details.id] !== prev.lead_details.last_login;
 
-                    if (needsThreadReload) {
-                        loadProject(true);
+                        if (membersChanged || leadChanged) {
+                            return {
+                                ...prev,
+                                members_details: prev.members_details?.map(m => ({ ...m, last_login: members_status[m.id] || m.last_login })),
+                                lead_details: prev.lead_details ? { ...prev.lead_details, last_login: members_status[prev.lead_details.id] || prev.lead_details.last_login } : prev.lead_details
+                            };
+                        }
                         return prev;
-                    }
-
-                    if (membersChanged || leadChanged) {
-                        return { ...prev, members_details: updatedMembers, lead_details: updatedLead };
-                    }
-                    return prev; // No re-render if nothing changed
-                });
+                    });
+                }
 
                 // Normal Pace: 5 seconds
                 timeoutId = setTimeout(poll, 5000);
@@ -446,7 +441,7 @@ function DiscussionsTab({ project, user, onUpdate, unreadMsgIds, setUnreadMsgIds
     const setActiveThreadId = (tid) => {
         // Clear unread for this thread
         if (tid && unreadMsgIds.size > 0) {
-            const threadMessages = project.threads.find(t => t.id === tid)?.messages || [];
+            const threadMessages = project.threads?.find(t => t.id === tid)?.messages || [];
             const newUnread = new Set(unreadMsgIds);
             threadMessages.forEach(m => newUnread.delete(m.id));
             setUnreadMsgIds(newUnread);
