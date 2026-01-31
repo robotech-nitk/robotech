@@ -68,6 +68,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'Join request sent'})
 
+    @action(detail=False, methods=['get'])
+    def debug_cache(self, request):
+        try:
+            from django.core.cache import cache
+            cache.set('test_key', 'test_value', 30)
+            val = cache.get('test_key')
+            return Response({'status': 'ok', 'val': val, 'backend': str(cache.backend)})
+        except Exception as e:
+            return Response({'error': str(e), 'type': type(e).__name__}, status=500)
+
     @action(detail=True, methods=['get'])
     def sync_state(self, request, pk=None):
         """
