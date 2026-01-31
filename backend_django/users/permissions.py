@@ -111,8 +111,6 @@ class GlobalPermission(permissions.BasePermission):
             'GalleryViewSet': 'can_manage_gallery',
             'SponsorshipViewSet': 'can_manage_sponsorship',
             'ContactMessageViewSet': 'can_manage_messages',
-            'ProjectThreadViewSet': 'can_manage_projects',
-            'ThreadMessageViewSet': 'can_manage_projects',
             'AuditLogViewSet': 'can_manage_security',
             'FormViewSet': 'can_manage_forms',
             'FormSectionViewSet': 'can_manage_forms',

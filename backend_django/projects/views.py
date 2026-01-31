@@ -176,49 +176,38 @@ class ProjectThreadViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def signal_typing(self, request, pk=None):
-        """
-        Receives heartbeat "typing" signal.
-        Stores in Cache (Redis effectively) with short TTL (3-5s).
-        Key: typing:thread_id:user_id => timestamp
-        """
-        from django.core.cache import cache
-        thread = self.get_object()
-        user_id = request.user.id
-        
-        # Key Design: typing:{thread_id}:{user_id}
-        key = f"typing:{thread.id}:{user_id}"
-        
-        # Set with 4 second expiry (Client polls every 2-3s, throttles send every 3s)
-        cache.set(key, request.user.username, timeout=4)
-        
-        return Response({'status': 'ok'})
+        try:
+            from django.core.cache import cache
+            thread = self.get_object()
+            user_id = request.user.id
+            key = f"typing:{thread.id}:{user_id}"
+            cache.set(key, request.user.username, timeout=4)
+            return Response({'status': 'ok'})
+        except Exception as e:
+            print(f"Typing Signal Error: {e}")
+            return Response({'error': str(e)}, status=500)
 
     @action(detail=True, methods=['get'])
     def get_typing_status(self, request, pk=None):
-        """
-        Returns list of users currently typing in this thread.
-        Scans keys or uses a Set if we had full Redis. 
-        For simple Cache limitation: Iterate known members (O(N) - ok for small teams).
-        """
-        from django.core.cache import cache
-        thread = self.get_object()
-        
-        active_typers = []
-        # Optimization: Only check members of this project
-        # In a massive system, we'd use Redis Keys or Sets. 
-        # Here, iterating project members is fast enough (<50 people).
-        members = list(thread.project.members.all())
-        if thread.project.lead: members.append(thread.project.lead)
-        
-        for m in members:
-            if m.id == request.user.id: continue # Don't show self
+        try:
+            from django.core.cache import cache
+            thread = self.get_object()
             
-            key = f"typing:{thread.id}:{m.id}"
-            username = cache.get(key)
-            if username:
-                active_typers.append({'id': m.id, 'username': username})
-                
-        return Response({'typers': active_typers})
+            active_typers = []
+            members = list(thread.project.members.all())
+            if thread.project.lead: members.append(thread.project.lead)
+            
+            for m in members:
+                if m.id == request.user.id: continue
+                key = f"typing:{thread.id}:{m.id}"
+                username = cache.get(key)
+                if username:
+                    active_typers.append({'id': m.id, 'username': username})
+                    
+            return Response({'typers': active_typers})
+        except Exception as e:
+            print(f"Typing Status Error: {e}")
+            return Response({'error': str(e)}, status=500)
 
 class ThreadMessageViewSet(viewsets.ModelViewSet):
     queryset = ThreadMessage.objects.all()
