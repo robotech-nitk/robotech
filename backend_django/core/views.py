@@ -27,6 +27,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
 
 class GalleryViewSet(viewsets.ModelViewSet):
     permission_classes = [GlobalPermission]
+    serializer_class = GalleryImageSerializer
 
     def get_queryset(self):
         qs = GalleryImage.objects.all().order_by('-uploaded_at')

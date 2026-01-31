@@ -75,12 +75,10 @@ export default function Navbar() {
 
             {recruitmentLink && (
               <a
-                href={recruitmentLink}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/#recruitment"
                 className="nav-link text-orange-400 font-bold hover:text-orange-300 relative group"
               >
-                Join Us
+                Recruitment Open
                 <span className="absolute -top-1 -right-2 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>

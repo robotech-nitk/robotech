@@ -159,7 +159,7 @@ export default function LandingPage() {
 
       {/* ================= RECRUITMENT SECTION ================= */}
       {recruitment && (
-        <section className="py-20 px-6 relative overflow-hidden">
+        <section id="recruitment" className="py-20 px-6 relative overflow-hidden">
           {/* Background Glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96 bg-orange-500/10 blur-[100px] rounded-full pointer-events-none" />
 
@@ -181,17 +181,28 @@ export default function LandingPage() {
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/10 -z-10" />
 
               {recruitment.timeline && recruitment.timeline.map((event, i) => {
-                const isFuture = new Date(event.date) > new Date();
-                const statusColor = event.is_completed ? "bg-green-500" : (isFuture ? "bg-gray-800 border-2 border-gray-600" : "bg-orange-500");
+                const eventDate = new Date(event.date);
+                const now = new Date();
+                // Reset times to compare dates only (to avoid timezone messiness for same-day events)
+                eventDate.setHours(0, 0, 0, 0);
+                now.setHours(0, 0, 0, 0);
+
+                const isPast = eventDate < now;
+                const isCompleted = event.is_completed || isPast;
+
+                const statusColor = isCompleted ? "bg-green-500" : "bg-gray-800 border-2 border-gray-600";
+
+                // If it is strictly today (active), maybe highlight differently?
+                // For now, sticking to user request: "old timeline shows striked out"
 
                 return (
                   <div key={event.id} className="relative group">
                     <div className={`w-4 h-4 rounded-full ${statusColor} mx-auto relative z-10 box-content transition-transform group-hover:scale-150 shadow-[0_0_15px_rgba(0,0,0,0.5)]`} />
                     <div className="absolute top-6 left-1/2 -translate-left-1/2 w-32 -ml-16 text-center">
-                      <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${event.is_completed ? 'text-gray-500 line-through' : 'text-orange-400'}`}>
+                      <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isCompleted ? 'text-gray-500 line-through' : 'text-orange-400'}`}>
                         {new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </p>
-                      <p className={`text-sm font-medium ${event.is_completed ? 'text-gray-600' : 'text-white'}`}>{event.title}</p>
+                      <p className={`text-sm font-medium ${isCompleted ? 'text-gray-600' : 'text-white'}`}>{event.title}</p>
                     </div>
                   </div>
                 );
