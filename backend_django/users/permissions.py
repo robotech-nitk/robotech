@@ -11,10 +11,10 @@ class GlobalPermission(permissions.BasePermission):
         user = request.user
         view_name = view.__class__.__name__
         # Safe debug logging
-        user_roles = []
-        if user and user.is_authenticated:
-             user_roles = [r.name for r in user.user_roles.all()]
-        print(f"DEBUG: Permission check for {view_name} [{request.method}] User: {user} Roles: {user_roles}")
+        # user_roles = []
+        # if user and user.is_authenticated:
+        #      user_roles = [r.name for r in user.user_roles.all()]
+        # print(f"DEBUG: Permission check for {view_name} [{request.method}] User: {user} Roles: {user_roles}")
         
         # 0. Public Bypass for Submissions (Unauthenticated ok)
         public_post_views = [
