@@ -17,11 +17,37 @@ export default function AdminAuditLogs() {
   }, [page, eventType]);
 
   const fetchLogs = async () => {
-    const res = await api.get("/audit-logs", {
-      params: { page, limit, eventType },
-    });
-    setLogs(res.data.data);
-    setTotal(res.data.total);
+    try {
+      const res = await api.get("/audit-logs/", {
+        params: { page, limit, eventType },
+      });
+
+      // Handle different response structures
+      if (Array.isArray(res.data)) {
+        // No pagination active on backend
+        let filtered = res.data;
+        if (eventType) {
+          filtered = filtered.filter(l => l.event_type === eventType);
+        }
+        // Manual client-side pagination since backend isn't paginating
+        setTotal(filtered.length);
+        const start = (page - 1) * limit;
+        setLogs(filtered.slice(start, start + limit));
+      } else if (res.data.results) {
+        // Standard DRF Pagination
+        setLogs(res.data.results);
+        setTotal(res.data.count);
+      } else if (res.data.data) {
+        // Custom envelope (as implied by previous code)
+        setLogs(res.data.data);
+        setTotal(res.data.total);
+      } else {
+        setLogs([]);
+        setTotal(0);
+      }
+    } catch (err) {
+      console.error("Failed to load logs", err);
+    }
   };
 
   const totalPages = Math.ceil(total / limit);

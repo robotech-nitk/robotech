@@ -94,12 +94,12 @@ export default function AnnouncementDetailModal({
               <ul className="space-y-2">
                 {announcement.files.map(file => (
                   <li key={file.id}>
-                <a
-                    href={`${import.meta.env.VITE_API_BASE_URL}/api/announcements/files/${file.id}`}
-                    className="text-cyan-400 hover:underline"
+                    <a
+                      href={`/api/announcements/files/${file.id}`}
+                      className="text-cyan-400 hover:underline"
                     >
-                    {file.original_name}
-                </a>
+                      {file.original_name}
+                    </a>
                   </li>
                 ))}
               </ul>

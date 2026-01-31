@@ -69,7 +69,7 @@ export default function SponsorshipPage() {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/sponsorship/`,
+        `/api/sponsorship/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
