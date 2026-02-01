@@ -67,7 +67,8 @@ class GlobalPermission(permissions.BasePermission):
             # B. Check Role linked to user's Position (Structure Management)
             try:
                 from .models import TeamPosition
-                pos_name = getattr(user.profile, 'position', None)
+                profile = getattr(user, 'profile', None)
+                pos_name = getattr(profile, 'position', None) if profile else None
                 if pos_name:
                     pos = TeamPosition.objects.filter(name__iexact=pos_name).first()
                     if pos and pos.role_link and getattr(pos.role_link, flag_name):
