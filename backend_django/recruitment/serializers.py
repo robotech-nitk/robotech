@@ -13,10 +13,19 @@ class RecruitmentAssignmentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class RecruitmentApplicationSerializer(serializers.ModelSerializer):
-    sig_name = serializers.CharField(source='user.profile.sig', read_only=True, default="N/A")
+    sig_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = RecruitmentApplication
         fields = '__all__'
+
+    def get_sig_name(self, obj):
+        try:
+            if obj.user and hasattr(obj.user, 'profile') and obj.user.profile.sig:
+                return obj.user.profile.sig.name
+        except:
+            pass
+        return "N/A"
 
 class RecruitmentDriveSerializer(serializers.ModelSerializer):
     timeline = TimelineEventSerializer(many=True, read_only=True)
