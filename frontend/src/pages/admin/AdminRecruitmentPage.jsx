@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy, Plus, Trash, ExternalLink, FileText, Upload, Users, GraduationCap, Award, MessageSquare, Calendar, Download, ChevronRight } from "lucide-react";
+import { Copy, Plus, Trash, ExternalLink, FileText, Upload, Users, GraduationCap, Award, MessageSquare, Calendar, Download, ChevronRight, Search, Filter } from "lucide-react";
 import api from "../../api/axios";
 import { formatDateIST } from "../../utils/dateUtils";
 
@@ -23,6 +23,14 @@ export default function AdminRecruitmentPage() {
     // Candidate / Application State
     const [applications, setApplications] = useState([]);
     const [activeTab, setActiveTab] = useState("overview"); // 'overview' or 'applications'
+
+    // Filters & Sorting
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterSig, setFilterSig] = useState("");
+    const [sortConfig, setSortConfig] = useState({ key: "total", direction: "desc" });
+
+    // Scheduling Modal
+    const [schedulingApp, setSchedulingApp] = useState(null);
 
     useEffect(() => {
         loadDrives();
@@ -145,19 +153,31 @@ export default function AdminRecruitmentPage() {
     };
 
     // Application Actions
-    const handleUpdateScore = async (appId, field, value) => {
+    const handleUpdateApplication = async (appId, updates) => {
         try {
-            await api.patch(`/recruitment/applications/${appId}/`, { [field]: value });
+            // Optimistic update
+            const updated = applications.map(app => app.id === appId ? { ...app, ...updates } : app);
+            setApplications(updated);
+
+            await api.patch(`/recruitment/applications/${appId}/`, updates);
+        } catch (err) {
+            console.error(err);
+            // Revert on failure (could improve by fetching)
             loadApplications(selectedDrive.id);
-        } catch (err) { console.error(err); }
+        }
     };
 
-    const handleScheduleInterview = async (appId, time) => {
+    const handleScheduleInterview = async (e) => {
+        e.preventDefault();
+        const time = e.target.interview_time.value;
+        if (!schedulingApp || !time) return;
+
         try {
-            await api.patch(`/recruitment/applications/${appId}/`, {
+            await api.patch(`/recruitment/applications/${schedulingApp.id}/`, {
                 interview_time: time,
                 status: 'INTERVIEW_SCHEDULED'
             });
+            setSchedulingApp(null);
             loadApplications(selectedDrive.id);
         } catch (err) { alert("Failed to schedule"); }
     };
@@ -170,6 +190,52 @@ export default function AdminRecruitmentPage() {
             await api.patch(`/recruitment/drives/${selectedDrive.id}/`, { registration_link: val });
         } catch (err) { console.error(err); }
     };
+
+    // CSV Download
+    const downloadCSV = () => {
+        const headers = ["Candidate Name", "ID/Email", "SIG", "OA Score", "Assessment Score", "Interview Score", "Total Score", "Status"];
+        const rows = sortedApplications.map(app => [
+            app.candidate_name || "New Applicant",
+            app.identifier,
+            app.sig_name || "N/A",
+            app.oa_score || 0,
+            app.assessment_score || 0,
+            app.interview_score || 0,
+            (parseFloat(app.oa_score) || 0) + (parseFloat(app.assessment_score) || 0) + (parseFloat(app.interview_score) || 0),
+            app.status
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `recruitment_data_${selectedDrive.title}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Filter & Sort Logic
+    const filteredApplications = applications.filter(app => {
+        const matchesSearch = (app.candidate_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+            (app.identifier?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+        const matchesSig = filterSig ? app.sig_name === filterSig : true;
+        return matchesSearch && matchesSig;
+    });
+
+    const sortedApplications = filteredApplications.sort((a, b) => {
+        const scoreA = (parseFloat(a.oa_score) || 0) + (parseFloat(a.assessment_score) || 0) + (parseFloat(a.interview_score) || 0);
+        const scoreB = (parseFloat(b.oa_score) || 0) + (parseFloat(b.assessment_score) || 0) + (parseFloat(b.interview_score) || 0);
+
+        if (sortConfig.key === 'total') return sortConfig.direction === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+
+        const valA = parseFloat(a[sortConfig.key]) || 0;
+        const valB = parseFloat(b[sortConfig.key]) || 0;
+        return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+    });
 
     if (loading && drives.length === 0) return <div className="p-8 text-white">Loading...</div>;
 
@@ -348,9 +414,51 @@ export default function AdminRecruitmentPage() {
                                         <h3 className="text-xl font-bold flex items-center gap-3">
                                             <Award className="text-orange-400" /> Recruitment Leaderboard
                                         </h3>
-                                        <div className="text-xs text-gray-400 p-2 bg-white/5 rounded-lg border border-white/5">
-                                            Total Score = OA + Assignment + Interview
+                                        <div className="flex gap-2">
+                                            <button onClick={downloadCSV} className="flex items-center gap-2 px-3 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/20 text-xs font-bold">
+                                                <Download size={14} /> Export CSV
+                                            </button>
+                                            <div className="text-xs text-gray-400 p-2 bg-white/5 rounded-lg border border-white/5">
+                                                Total Score = OA + Assessment + Interview
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    {/* Filters Bar */}
+                                    <div className="flex flex-wrap gap-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/5">
+                                        <div className="flex-1 min-w-[200px] relative">
+                                            <Search className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                                            <input
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:border-orange-500 outline-none"
+                                                placeholder="Search name or ID..."
+                                                value={searchQuery}
+                                                onChange={e => setSearchQuery(e.target.value)}
+                                            />
+                                        </div>
+                                        <select
+                                            className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:border-orange-500"
+                                            value={filterSig}
+                                            onChange={e => setFilterSig(e.target.value)}
+                                        >
+                                            <option value="">All SIGs</option>
+                                            {sigs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        </select>
+                                        <select
+                                            className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:border-orange-500"
+                                            value={sortConfig.key}
+                                            onChange={e => setSortConfig(prev => ({ ...prev, key: e.target.value }))}
+                                        >
+                                            <option value="total">Sort: Total Score</option>
+                                            <option value="oa_score">Sort: OA Score</option>
+                                            <option value="assessment_score">Sort: Assessment</option>
+                                            <option value="interview_score">Sort: Interview</option>
+                                        </select>
+                                        <button
+                                            onClick={() => setSortConfig(prev => ({ ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                                            className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10"
+                                        >
+                                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                        </button>
                                     </div>
 
                                     <div className="overflow-x-auto">
@@ -368,43 +476,40 @@ export default function AdminRecruitmentPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {[...applications]
-                                                    .sort((a, b) => ((b.oa_score || 0) + (b.assessment_score || 0) + (b.interview_score || 0)) - ((a.oa_score || 0) + (a.assessment_score || 0) + (a.interview_score || 0)))
-                                                    .map((app, i) => (
-                                                        <tr key={app.id} className="group hover:bg-white/[0.02] transition-colors">
-                                                            <td className="py-4 px-2 font-mono text-orange-400 font-bold">#{i + 1}</td>
-                                                            <td className="py-4 px-2">
-                                                                <p className="font-bold text-white text-sm">{app.candidate_name || "New Applicant"}</p>
-                                                                <p className="text-[10px] text-gray-500 font-mono italic">{app.identifier}</p>
-                                                            </td>
-                                                            <td className="py-4 px-2">
-                                                                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded uppercase tracking-tighter">{app.sig_name}</span>
-                                                            </td>
-                                                            <td className="py-4 px-2">
-                                                                <input type="number" className="w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-orange-500" value={app.oa_score || ""} onChange={(e) => handleUpdateScore(app.id, 'oa_score', e.target.value)} placeholder="--" />
-                                                            </td>
-                                                            <td className="py-4 px-2">
-                                                                <input type="number" className="w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-orange-500 font-bold text-orange-400" value={app.assessment_score || ""} onChange={(e) => handleUpdateScore(app.id, 'assessment_score', e.target.value)} placeholder="--" />
-                                                            </td>
-                                                            <td className="py-4 px-2">
-                                                                <input type="number" className="w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-orange-500 text-green-400" value={app.interview_score || ""} onChange={(e) => handleUpdateScore(app.id, 'interview_score', e.target.value)} placeholder="--" />
-                                                            </td>
-                                                            <td className="py-4 px-2 font-black text-sm">{(app.oa_score || 0) + (app.assessment_score || 0) + (app.interview_score || 0)}</td>
-                                                            <td className="py-4 px-2">
-                                                                <div className="flex gap-2">
-                                                                    {app.solution_link && <a href={app.solution_link} target="_blank" rel="noreferrer" className="p-2 bg-white/5 text-blue-400 rounded-lg hover:bg-white/10 border border-white/5"><ExternalLink size={14} /></a>}
-                                                                    {app.assessment_file && <a href={app.assessment_file} target="_blank" rel="noreferrer" className="p-2 bg-white/5 text-orange-400 rounded-lg hover:bg-white/10 border border-white/5"><Download size={14} /></a>}
-                                                                    <div className="relative group/time">
-                                                                        <button className="p-2 bg-white/5 text-gray-400 rounded-lg border border-white/5 hover:text-green-400"><Calendar size={14} /></button>
-                                                                        <div className="absolute right-0 top-full mt-2 hidden group-hover/time:block z-50 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl w-64">
-                                                                            <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Schedule Slot</p>
-                                                                            <input type="datetime-local" className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs text-white" onChange={(e) => handleScheduleInterview(app.id, e.target.value)} defaultValue={app.interview_time?.slice(0, 16)} />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                {sortedApplications.map((app, i) => (
+                                                    <tr key={app.id} className="group hover:bg-white/[0.02] transition-colors">
+                                                        <td className="py-4 px-2 font-mono text-orange-400 font-bold">#{i + 1}</td>
+                                                        <td className="py-4 px-2">
+                                                            <input
+                                                                className="bg-transparent border-b border-transparent focus:border-white/20 outline-none font-bold text-white text-sm w-full"
+                                                                value={app.candidate_name || ""}
+                                                                placeholder="New Applicant"
+                                                                onChange={(e) => handleUpdateApplication(app.id, { candidate_name: e.target.value })}
+                                                            />
+                                                            <p className="text-[10px] text-gray-500 font-mono italic">{app.identifier}</p>
+                                                        </td>
+                                                        <td className="py-4 px-2">
+                                                            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded uppercase tracking-tighter">{app.sig_name || "N/A"}</span>
+                                                        </td>
+                                                        <td className="py-4 px-2">
+                                                            <input type="number" className="w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-orange-500" value={app.oa_score || ""} onChange={(e) => handleUpdateApplication(app.id, { oa_score: e.target.value })} placeholder="--" />
+                                                        </td>
+                                                        <td className="py-4 px-2">
+                                                            <input type="number" className="w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-orange-500 font-bold text-orange-400" value={app.assessment_score || ""} onChange={(e) => handleUpdateApplication(app.id, { assessment_score: e.target.value })} placeholder="--" />
+                                                        </td>
+                                                        <td className="py-4 px-2">
+                                                            <input type="number" className="w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-orange-500 text-green-400" value={app.interview_score || ""} onChange={(e) => handleUpdateApplication(app.id, { interview_score: e.target.value })} placeholder="--" />
+                                                        </td>
+                                                        <td className="py-4 px-2 font-black text-sm">{(parseFloat(app.oa_score) || 0) + (parseFloat(app.assessment_score) || 0) + (parseFloat(app.interview_score) || 0)}</td>
+                                                        <td className="py-4 px-2">
+                                                            <div className="flex gap-2">
+                                                                {app.solution_link && <a href={app.solution_link} target="_blank" rel="noreferrer" className="p-2 bg-white/5 text-blue-400 rounded-lg hover:bg-white/10 border border-white/5"><ExternalLink size={14} /></a>}
+                                                                {app.assessment_file && <a href={app.assessment_file} target="_blank" rel="noreferrer" className="p-2 bg-white/5 text-orange-400 rounded-lg hover:bg-white/10 border border-white/5"><Download size={14} /></a>}
+                                                                <button onClick={() => setSchedulingApp(app)} className="p-2 bg-white/5 text-gray-400 rounded-lg border border-white/5 hover:text-green-400"><Calendar size={14} /></button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                             </tbody>
                                         </table>
                                     </div>
@@ -429,6 +534,33 @@ export default function AdminRecruitmentPage() {
                             <div className="flex justify-end gap-3 pt-4">
                                 <button type="button" onClick={() => setShowDriveForm(false)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white">Cancel</button>
                                 <button type="submit" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg font-bold text-black shadow-lg shadow-orange-500/20">Create</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Scheduling Modal */}
+            {schedulingApp && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-[#111] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+                        <h2 className="text-lg font-bold mb-1 text-white">Schedule Interview</h2>
+                        <p className="text-xs text-gray-500 mb-6">For {schedulingApp.candidate_name || schedulingApp.identifier}</p>
+
+                        <form onSubmit={handleScheduleInterview} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date & Time</label>
+                                <input
+                                    type="datetime-local"
+                                    name="interview_time"
+                                    className="w-full bg-black border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none"
+                                    defaultValue={schedulingApp.interview_time?.slice(0, 16)}
+                                    required
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button type="button" onClick={() => setSchedulingApp(null)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm">Cancel</button>
+                                <button type="submit" className="px-4 py-2 bg-green-500 text-black rounded-lg font-bold text-sm">Save Schedule</button>
                             </div>
                         </form>
                     </div>
