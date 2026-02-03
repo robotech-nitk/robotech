@@ -42,6 +42,16 @@ class RecruitmentDriveViewSet(viewsets.ModelViewSet):
                 drive=drive,
                 identifier=identifier
             )
+            
+            # Update basic fields
+            candidate_name = request.data.get('candidate_name')
+            sig_id = request.data.get('sig')
+            
+            if candidate_name:
+                app.candidate_name = candidate_name
+            if sig_id:
+                app.sig_id = sig_id
+
             if file: app.assessment_file = file
             if solution_link: app.solution_link = solution_link
             

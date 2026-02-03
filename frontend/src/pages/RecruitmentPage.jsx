@@ -288,6 +288,24 @@ export default function RecruitmentPage() {
                                 />
                             </div>
 
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Select SIG</label>
+                                <select
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-white appearance-none"
+                                    value={selectedSig?.id || ""}
+                                    onChange={(e) => {
+                                        const found = drive.assignments.find(a => a.id === parseInt(e.target.value));
+                                        if (found) setSelectedSig(found);
+                                    }}
+                                >
+                                    {drive.assignments?.map(asn => (
+                                        <option key={asn.id} value={asn.id} className="bg-black text-white">
+                                            {asn.sig_name} - {asn.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {(!selectedSig?.submission_type || selectedSig.submission_type === 'FILE') && (
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Solution File (PDF/ZIP)</label>
