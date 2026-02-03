@@ -138,30 +138,55 @@ export default function RecruitmentPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {drive.timeline?.map((item, i) => (
-                            <div key={item.id} className="relative group">
-                                <div className={`p-6 rounded-2xl border transition-all duration-300 h-full ${item.is_completed ? 'bg-orange-500/5 border-orange-500/20 grayscale translate-y-2 opacity-50' : 'bg-[#111] border-white/5 hover:border-orange-500/30'}`}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className={`p-2 rounded-lg ${item.is_completed ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                            {item.is_completed ? <CheckCircle2 size={24} /> : <Clock size={24} />}
-                                        </div>
-                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Step 0{i + 1}</span>
-                                    </div>
-                                    <h3 className={`text-xl font-bold mb-2 uppercase font-[Orbitron] ${item.is_completed ? 'text-gray-400' : 'text-white'}`}>{item.title}</h3>
-                                    <p className="text-sm text-gray-400">
-                                        {formatDateIST(item.date, { hour: undefined, minute: undefined })}
-                                    </p>
+                        {(() => {
+                            const activeIndex = drive.timeline?.findIndex(t => !t.is_completed) ?? -1;
+                            const finalActiveIndex = activeIndex === -1 && drive.timeline?.length > 0 ? drive.timeline.length : activeIndex; // If all complete, arguably none is 'active' or last is done. Let's stick to first non-complete.
 
-                                    {/* Connection Line (for desktop) */}
-                                    {i < drive.timeline.length - 1 && (
-                                        <div className="hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 z-10 text-white/10 group-hover:text-orange-500/50 transition">
-                                            <ChevronRight size={24} />
+                            return drive.timeline?.map((item, i) => {
+                                const isPast = item.is_completed;
+                                const isCurrent = i === activeIndex;
+                                const isFuture = !isPast && !isCurrent;
+
+                                return (
+                                    <div key={item.id} className="relative group">
+                                        <div className={`p-6 rounded-2xl border transition-all duration-300 h-full relative overflow-hidden
+                                            ${isPast ? 'bg-orange-500/5 border-orange-500/20 grayscale translate-y-2 opacity-50' : ''}
+                                            ${isCurrent ? 'bg-gradient-to-br from-[#1a1a1a] to-black border-orange-500 shadow-lg shadow-orange-500/10 scale-105 z-10' : ''}
+                                            ${isFuture ? 'bg-[#111] border-white/5 hover:border-orange-500/30' : ''}
+                                        `}>
+                                            {isCurrent && (
+                                                <div className="absolute top-0 right-0 p-2">
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className={`p-2 rounded-lg ${isPast ? 'bg-green-500/20 text-green-500' : isCurrent ? 'bg-orange-500 text-black' : 'bg-white/5 text-gray-500'}`}>
+                                                    {isPast ? <CheckCircle2 size={24} /> : <Clock size={24} />}
+                                                </div>
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isCurrent ? 'text-orange-500' : 'text-gray-500'}`}>Step 0{i + 1}</span>
+                                            </div>
+                                            <h3 className={`text-xl font-bold mb-2 uppercase font-[Orbitron] ${isPast ? 'text-gray-400' : 'text-white'}`}>{item.title}</h3>
+                                            <p className={`text-sm ${isCurrent ? 'text-orange-400 font-medium' : 'text-gray-400'}`}>
+                                                {formatDateIST(item.date, { hour: undefined, minute: undefined })}
+                                            </p>
+
+                                            {/* Connection Line (for desktop) */}
+                                            {i < drive.timeline.length - 1 && (
+                                                <div className={`hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 z-10 transition ${isPast ? 'text-green-500/20' : 'text-white/10'}`}>
+                                                    <ChevronRight size={24} />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                                    </div>
+                                );
+                            });
+                        })()}
                     </div>
+
                 </section>
 
                 {/* ASSESSMENT SECTION */}
@@ -253,100 +278,102 @@ export default function RecruitmentPage() {
             </main>
 
             {/* UPLOAD MODAL */}
-            {showUpload && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
-                    <div className="w-full max-w-md bg-[#111] border border-orange-500/30 rounded-3xl p-8 shadow-2xl">
-                        <h3 className="text-2xl font-bold font-[Orbitron] mb-2 text-orange-400 uppercase">Submit Assessment</h3>
-                        <p className="text-gray-500 text-sm mb-8">Enter your primary identifier (Email/Roll No) as used in the form.</p>
+            {
+                showUpload && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
+                        <div className="w-full max-w-md bg-[#111] border border-orange-500/30 rounded-3xl p-8 shadow-2xl">
+                            <h3 className="text-2xl font-bold font-[Orbitron] mb-2 text-orange-400 uppercase">Submit Assessment</h3>
+                            <p className="text-gray-500 text-sm mb-8">Enter your primary identifier (Email/Roll No) as used in the form.</p>
 
-                        <form onSubmit={handleUpload} className="space-y-6">
-                            {message.text && (
-                                <div className={`p-4 rounded-xl text-sm font-bold ${message.type === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                                    {message.text}
-                                </div>
-                            )}
+                            <form onSubmit={handleUpload} className="space-y-6">
+                                {message.text && (
+                                    <div className={`p-4 rounded-xl text-sm font-bold ${message.type === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                                        {message.text}
+                                    </div>
+                                )}
 
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Full Name</label>
-                                <input
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none"
-                                    placeholder="Enter your full name"
-                                    value={candidateName}
-                                    onChange={e => setCandidateName(e.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Primary Identifier</label>
-                                <input
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none"
-                                    placeholder="Enter Email or Roll No"
-                                    value={identifier}
-                                    onChange={e => setIdentifier(e.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Select SIG</label>
-                                <select
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-white appearance-none"
-                                    value={selectedSig?.id || ""}
-                                    onChange={(e) => {
-                                        const found = drive.assignments.find(a => a.id === parseInt(e.target.value));
-                                        if (found) setSelectedSig(found);
-                                    }}
-                                >
-                                    {drive.assignments?.map(asn => (
-                                        <option key={asn.id} value={asn.id} className="bg-black text-white">
-                                            {asn.sig_name} - {asn.title}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {(!selectedSig?.submission_type || selectedSig.submission_type === 'FILE') && (
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Solution File (PDF/ZIP)</label>
-                                    <label className="w-full h-24 flex flex-col items-center justify-center bg-black/60 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-orange-500/50 transition group">
-                                        {file ? (
-                                            <div className="text-orange-400 font-bold">{file.name}</div>
-                                        ) : (
-                                            <>
-                                                <Upload className="text-gray-600 group-hover:text-orange-500 mb-1" size={24} />
-                                                <span className="text-gray-500 text-xs">Drop File</span>
-                                            </>
-                                        )}
-                                        <input type="file" className="hidden" onChange={e => { setFile(e.target.files[0]); setSolutionLink(""); }} accept=".pdf,.zip,.rar" />
-                                    </label>
-                                </div>
-                            )}
-
-                            {selectedSig?.submission_type === 'LINK' && (
-                                <div>
-                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Drive / GitHub Link</label>
+                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Full Name</label>
                                     <input
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-sm"
-                                        placeholder="https://drive.google.com/..."
-                                        value={solutionLink}
-                                        onChange={e => { setSolutionLink(e.target.value); setFile(null); }}
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none"
+                                        placeholder="Enter your full name"
+                                        value={candidateName}
+                                        onChange={e => setCandidateName(e.target.value)}
+                                        required
                                     />
                                 </div>
-                            )}
 
-                            <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setShowUpload(false)} className="flex-1 py-4 text-gray-500 font-bold hover:bg-white/5 rounded-xl transition uppercase tracking-widest text-xs">Cancel</button>
-                                <button type="submit" disabled={submitting} className="flex-1 py-4 bg-orange-600 text-black font-black rounded-xl hover:bg-orange-500 disabled:opacity-50 transition uppercase tracking-widest text-xs shadow-lg shadow-orange-600/20">
-                                    {submitting ? "Uploading..." : "Transmit"}
-                                </button>
-                            </div>
-                        </form>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Primary Identifier</label>
+                                    <input
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none"
+                                        placeholder="Enter Email or Roll No"
+                                        value={identifier}
+                                        onChange={e => setIdentifier(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Select SIG</label>
+                                    <select
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-white appearance-none"
+                                        value={selectedSig?.id || ""}
+                                        onChange={(e) => {
+                                            const found = drive.assignments.find(a => a.id === parseInt(e.target.value));
+                                            if (found) setSelectedSig(found);
+                                        }}
+                                    >
+                                        {drive.assignments?.map(asn => (
+                                            <option key={asn.id} value={asn.id} className="bg-black text-white">
+                                                {asn.sig_name} - {asn.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {(!selectedSig?.submission_type || selectedSig.submission_type === 'FILE') && (
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Solution File (PDF/ZIP)</label>
+                                        <label className="w-full h-24 flex flex-col items-center justify-center bg-black/60 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-orange-500/50 transition group">
+                                            {file ? (
+                                                <div className="text-orange-400 font-bold">{file.name}</div>
+                                            ) : (
+                                                <>
+                                                    <Upload className="text-gray-600 group-hover:text-orange-500 mb-1" size={24} />
+                                                    <span className="text-gray-500 text-xs">Drop File</span>
+                                                </>
+                                            )}
+                                            <input type="file" className="hidden" onChange={e => { setFile(e.target.files[0]); setSolutionLink(""); }} accept=".pdf,.zip,.rar" />
+                                        </label>
+                                    </div>
+                                )}
+
+                                {selectedSig?.submission_type === 'LINK' && (
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Drive / GitHub Link</label>
+                                        <input
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-sm"
+                                            placeholder="https://drive.google.com/..."
+                                            value={solutionLink}
+                                            onChange={e => { setSolutionLink(e.target.value); setFile(null); }}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="flex gap-4 pt-4">
+                                    <button type="button" onClick={() => setShowUpload(false)} className="flex-1 py-4 text-gray-500 font-bold hover:bg-white/5 rounded-xl transition uppercase tracking-widest text-xs">Cancel</button>
+                                    <button type="submit" disabled={submitting} className="flex-1 py-4 bg-orange-600 text-black font-black rounded-xl hover:bg-orange-500 disabled:opacity-50 transition uppercase tracking-widest text-xs shadow-lg shadow-orange-600/20">
+                                        {submitting ? "Uploading..." : "Transmit"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <Footer />
-        </div>
+        </div >
     );
 }
