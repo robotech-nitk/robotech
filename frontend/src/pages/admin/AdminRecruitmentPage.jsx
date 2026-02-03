@@ -32,6 +32,10 @@ export default function AdminRecruitmentPage() {
     // Scheduling Modal
     const [schedulingApp, setSchedulingApp] = useState(null);
 
+    // Interview Evaluation
+    const [evaluatingApp, setEvaluatingApp] = useState(null);
+    const [evaluationForm, setEvaluationForm] = useState({ max_score: 10, raw_score: 0, notes: "" });
+
     useEffect(() => {
         loadDrives();
         loadSigs();
@@ -210,6 +214,31 @@ export default function AdminRecruitmentPage() {
         } catch (err) { console.error(err); }
     };
 
+    const handleCompleteInterview = async (e) => {
+        e.preventDefault();
+        if (!evaluatingApp) return;
+
+        // Normalize logic if needed, or just save raw score. 
+        // User asked for "scored and normalized". Let's assume we store the normalized/final score.
+        // Or we store the raw score if max_score is mostly for reference. 
+        // Let's store the Calculated Score (raw / max * 10 or 100?). 
+        // For simplicity and flexibility, let's just save the 'raw_score' the user finally approves in the box.
+        // Actually, let's auto-calculate a normalized score if they want, but default to simple input.
+
+        // Let's Assume the user Inputs the "Final Score" to be saved.
+        // But the requirement says "assign the max score".
+        // Let's save `raw_score` directly to `interview_score`. normalize logic can be UI side helper.
+
+        try {
+            await handleUpdateApplication(evaluatingApp.id, {
+                interview_score: evaluationForm.raw_score,
+                notes: evaluationForm.notes,
+                status: 'INTERVIEW_COMPLETED'
+            });
+            setEvaluatingApp(null);
+        } catch (err) { alert("Failed to save evaluation"); }
+    };
+
     // CSV Download
     const downloadCSV = () => {
         const headers = ["Candidate Name", "ID/Email", "SIG", "OA Score", "Assessment Score", "Interview Score", "Total Score", "Status"];
@@ -332,18 +361,24 @@ export default function AdminRecruitmentPage() {
                         </div>
 
                         {/* Navigation Tabs */}
-                        <div className="flex border-b border-white/5 gap-8">
+                        <div className="flex border-b border-white/5 gap-8 overflow-x-auto">
                             <button
                                 onClick={() => setActiveTab("overview")}
-                                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'overview' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500 hover:text-white'}`}
+                                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500 hover:text-white'}`}
                             >
                                 Setup & Tasks
                             </button>
                             <button
                                 onClick={() => setActiveTab("applications")}
-                                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'applications' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500 hover:text-white'}`}
+                                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${activeTab === 'applications' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500 hover:text-white'}`}
                             >
-                                Candidates & Tracking ({applications.length})
+                                Candidates ({applications.length})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("interviews")}
+                                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${activeTab === 'interviews' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500 hover:text-white'}`}
+                            >
+                                Interview Panel
                             </button>
                         </div>
 
@@ -438,7 +473,7 @@ export default function AdminRecruitmentPage() {
                                     </form>
                                 </div>
                             </div>
-                        ) : (
+                        ) : activeTab === 'applications' ? (
                             <div className="space-y-6">
                                 {/* Leaderboard View */}
                                 <div className="bg-[#0b0c15] p-6 rounded-2xl border border-white/5">
@@ -547,57 +582,191 @@ export default function AdminRecruitmentPage() {
                                     </div>
                                 </div>
                             </div>
-                        )}
+
+                        ) : activeTab === 'interviews' ? (
+                            <div className="space-y-6">
+                                <div className="bg-[#0b0c15] p-6 rounded-2xl border border-white/5">
+                                    <h3 className="text-xl font-bold flex items-center gap-3 mb-6">
+                                        <MessageSquare className="text-orange-400" /> Interview Schedule
+                                    </h3>
+
+                                    <div className="space-y-4">
+                                        {applications.filter(app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEW_COMPLETED').length === 0 && (
+                                            <p className="text-gray-500 italic">No interviews scheduled yet.</p>
+                                        )}
+                                        {applications.filter(app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEW_COMPLETED')
+                                            .sort((a, b) => new Date(a.interview_time) - new Date(b.interview_time))
+                                            .map(app => (
+                                                <div key={app.id} className="p-4 bg-white/5 border border-white/5 rounded-xl flex flex-col md:flex-row justify-between gap-4 items-center group hover:bg-white/10 transition">
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <div className="p-3 bg-orange-500/10 text-orange-400 rounded-lg">
+                                                            <Users size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-bold text-white text-lg">{app.candidate_name || app.identifier}</h4>
+                                                                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 rounded uppercase font-bold">{app.sig_name}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-4 mt-1">
+                                                                <p className="text-sm text-gray-400 font-mono flex items-center gap-1.5">
+                                                                    <Calendar size={12} className="text-gray-500" />
+                                                                    {app.interview_time ? formatDateIST(app.interview_time) : "Time not set"}
+                                                                </p>
+                                                                {app.status === 'INTERVIEW_COMPLETED' && <span className="text-[10px] text-green-400 font-bold bg-green-500/10 px-2 rounded">COMPLETED</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                                                        <div className="text-right hidden sm:block">
+                                                            <p className="text-[10px] uppercase font-bold text-gray-600">Scores</p>
+                                                            <p>OA: <span className="text-white">{app.oa_score || '-'}</span> • Asm: <span className="text-white">{app.assessment_score || '-'}</span></p>
+                                                        </div>
+                                                        <div className="h-8 w-[1px] bg-white/10 hidden sm:block"></div>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEvaluatingApp(app);
+                                                                setEvaluationForm({
+                                                                    max_score: 10,
+                                                                    raw_score: app.interview_score || 0,
+                                                                    notes: app.notes || ""
+                                                                });
+                                                            }}
+                                                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition flex items-center gap-2"
+                                                        >
+                                                            <Award size={16} />
+                                                            {app.status === 'INTERVIEW_COMPLETED' ? "Update Score" : "Evaluate"}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
                     </div>
                 ) : (
                     <div className="lg:col-span-2 flex items-center justify-center p-12 text-gray-500 border border-white/5 rounded-2xl bg-white/5">Select a cycle to manage</div>
                 )}
             </div>
 
-            {showDriveForm && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="glass p-8 rounded-2xl w-full max-w-md border border-orange-500/30 shadow-2xl">
-                        <h2 className="text-2xl font-bold mb-6 font-[Orbitron] text-orange-400">Initialize Cycle</h2>
-                        <form onSubmit={handleCreateDrive} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
-                                <input className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none" required value={driveForm.title} onChange={e => setDriveForm({ ...driveForm, title: e.target.value })} />
-                            </div>
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button type="button" onClick={() => setShowDriveForm(false)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white">Cancel</button>
-                                <button type="submit" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg font-bold text-black shadow-lg shadow-orange-500/20">Create</button>
-                            </div>
-                        </form>
+            {
+                showDriveForm && (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="glass p-8 rounded-2xl w-full max-w-md border border-orange-500/30 shadow-2xl">
+                            <h2 className="text-2xl font-bold mb-6 font-[Orbitron] text-orange-400">Initialize Cycle</h2>
+                            <form onSubmit={handleCreateDrive} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
+                                    <input className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none" required value={driveForm.title} onChange={e => setDriveForm({ ...driveForm, title: e.target.value })} />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <button type="button" onClick={() => setShowDriveForm(false)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white">Cancel</button>
+                                    <button type="submit" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg font-bold text-black shadow-lg shadow-orange-500/20">Create</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* Evaluation Modal */}
+            {
+                evaluatingApp && (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-[#111] p-8 rounded-2xl w-full max-w-lg border border-white/10 shadow-2xl relative">
+                            <button onClick={() => setEvaluatingApp(null)} className="absolute top-4 right-4 text-gray-500 hover:text-white"><Trash size={16} /></button>
+
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="p-4 bg-blue-500/10 rounded-xl text-blue-400"><Users size={24} /></div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{evaluatingApp.candidate_name || evaluatingApp.identifier}</h2>
+                                    <p className="text-sm text-gray-400">{evaluatingApp.sig_name} • OA: {evaluatingApp.oa_score || 'N/A'} • Asm: {evaluatingApp.assessment_score || 'N/A'}</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleCompleteInterview} className="space-y-6">
+
+                                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Scoring Control</label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                            <p className="text-xs text-gray-400 mb-1">Max Score</p>
+                                            <input
+                                                type="number"
+                                                className="w-full bg-black border border-white/20 rounded-lg p-2 text-center font-bold text-gray-500 focus:text-white focus:border-blue-500 outline-none"
+                                                value={evaluationForm.max_score}
+                                                onChange={e => setEvaluationForm({ ...evaluationForm, max_score: parseFloat(e.target.value) })}
+                                            />
+                                        </div>
+                                        <div className="text-2xl font-black text-gray-600">/</div>
+                                        <div className="flex-1">
+                                            <p className="text-xs text-blue-400 font-bold mb-1">Obtained</p>
+                                            <input
+                                                type="number"
+                                                autoFocus
+                                                className="w-full bg-black border border-blue-500/50 rounded-lg p-2 text-center font-bold text-blue-400 text-xl focus:ring-2 ring-blue-500/20 outline-none"
+                                                value={evaluationForm.raw_score}
+                                                onChange={e => setEvaluationForm({ ...evaluationForm, raw_score: parseFloat(e.target.value) })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 text-center">
+                                        <p className="text-[10px] text-gray-500">
+                                            Normalized: <span className="text-white font-bold">{((evaluationForm.raw_score / evaluationForm.max_score) * 10 || 0).toFixed(1)} / 10</span>
+                                            <span className="mx-2 text-gray-700">|</span>
+                                            <span className="text-white font-bold">{((evaluationForm.raw_score / evaluationForm.max_score) * 100 || 0).toFixed(0)}%</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Remarks / Observations</label>
+                                    <textarea
+                                        className="w-full bg-black border border-white/10 rounded-xl p-4 text-sm focus:border-blue-500 outline-none h-32"
+                                        placeholder="Enter detailed feedback here..."
+                                        value={evaluationForm.notes}
+                                        onChange={e => setEvaluationForm({ ...evaluationForm, notes: e.target.value })}
+                                    />
+                                </div>
+
+                                <button type="submit" className="w-full py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl transition shadow-lg shadow-green-500/20">
+                                    Confirm & Update Score
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Scheduling Modal */}
-            {schedulingApp && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-[#111] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
-                        <h2 className="text-lg font-bold mb-1 text-white">Schedule Interview</h2>
-                        <p className="text-xs text-gray-500 mb-6">For {schedulingApp.candidate_name || schedulingApp.identifier}</p>
+            {
+                schedulingApp && (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-[#111] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+                            <h2 className="text-lg font-bold mb-1 text-white">Schedule Interview</h2>
+                            <p className="text-xs text-gray-500 mb-6">For {schedulingApp.candidate_name || schedulingApp.identifier}</p>
 
-                        <form onSubmit={handleScheduleInterview} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date & Time</label>
-                                <input
-                                    type="datetime-local"
-                                    name="interview_time"
-                                    className="w-full bg-black border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none"
-                                    defaultValue={schedulingApp.interview_time?.slice(0, 16)}
-                                    required
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button type="button" onClick={() => setSchedulingApp(null)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-green-500 text-black rounded-lg font-bold text-sm">Save Schedule</button>
-                            </div>
-                        </form>
+                            <form onSubmit={handleScheduleInterview} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date & Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        name="interview_time"
+                                        className="w-full bg-black border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none"
+                                        defaultValue={schedulingApp.interview_time?.slice(0, 16)}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button type="button" onClick={() => setSchedulingApp(null)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm">Cancel</button>
+                                    <button type="submit" className="px-4 py-2 bg-green-500 text-black rounded-lg font-bold text-sm">Save Schedule</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

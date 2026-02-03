@@ -27,6 +27,8 @@ class RecruitmentApplicationSerializer(serializers.ModelSerializer):
 
     def get_sig_name(self, obj):
         try:
+            if obj.sig:
+                return obj.sig.name
             if obj.user and hasattr(obj.user, 'profile') and obj.user.profile.sig:
                 return obj.user.profile.sig.name
         except:
