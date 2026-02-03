@@ -13,7 +13,7 @@ export default function AdminRecruitmentPage() {
     const [driveForm, setDriveForm] = useState({ title: "", registration_link: "", description: "" });
 
     // Timeline Form
-    const [timelineForm, setTimelineForm] = useState({ title: "", date: "", is_completed: false });
+    const [timelineForm, setTimelineForm] = useState({ id: null, title: "", date: "", is_completed: false });
 
     // Assignment Form
     const [sigs, setSigs] = useState([]);
@@ -104,13 +104,26 @@ export default function AdminRecruitmentPage() {
         e.preventDefault();
         if (!selectedDrive) return;
         try {
-            await api.post("/recruitment/timeline/", {
-                ...timelineForm,
-                drive: selectedDrive.id
-            });
-            setTimelineForm({ title: "", date: "", is_completed: false });
+            if (timelineForm.id) {
+                await api.patch(`/recruitment/timeline/${timelineForm.id}/`, timelineForm);
+            } else {
+                await api.post("/recruitment/timeline/", {
+                    ...timelineForm,
+                    drive: selectedDrive.id
+                });
+            }
+            setTimelineForm({ id: null, title: "", date: "", is_completed: false });
             loadDrives();
-        } catch (err) { alert("Failed to add event"); }
+        } catch (err) { alert("Failed to save event"); }
+    };
+
+    const handleEditTimeline = (item) => {
+        setTimelineForm({
+            id: item.id,
+            title: item.title,
+            date: item.date ? item.date.slice(0, 16) : "",
+            is_completed: item.is_completed
+        });
     };
 
     const handleToggleComplete = async (item) => {
@@ -403,6 +416,7 @@ export default function AdminRecruitmentPage() {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
+                                                        <button onClick={() => handleEditTimeline(item)} className="text-gray-500 hover:text-white p-1"><FileText size={14} /></button>
                                                         <input type="checkbox" checked={item.is_completed} onChange={() => handleToggleComplete(item)} className="w-5 h-5 accent-green-500 rounded cursor-pointer" />
                                                         <button onClick={() => handleDeleteEvent(item.id)} className="text-gray-600 hover:text-red-400 p-1"><Trash size={14} /></button>
                                                     </div>
@@ -411,10 +425,16 @@ export default function AdminRecruitmentPage() {
                                         )) : <p className="text-gray-500 italic">No timeline events set.</p>}
                                     </div>
 
-                                    <form onSubmit={handleAddTimeline} className="mt-6 pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-3">
-                                        <input placeholder="Event Title" className="flex-[2] bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-orange-500 outline-none" required value={timelineForm.title} onChange={e => setTimelineForm({ ...timelineForm, title: e.target.value })} />
-                                        <input type="datetime-local" className="flex-1 bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-orange-500 outline-none text-white/70" required value={timelineForm.date} onChange={e => setTimelineForm({ ...timelineForm, date: e.target.value })} />
-                                        <button type="submit" className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg font-bold text-sm transition">Add Event</button>
+                                    <form onSubmit={handleAddTimeline} className="mt-6 pt-6 border-t border-white/5 flex flex-col gap-3">
+                                        <div className="flex justify-between items-center text-xs font-bold uppercase text-gray-500 mb-1">
+                                            <span>{timelineForm.id ? "Edit Event" : "New Event"}</span>
+                                            {timelineForm.id && <button type="button" onClick={() => setTimelineForm({ id: null, title: "", date: "", is_completed: false })} className="text-red-400 hover:text-red-300">Cancel</button>}
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <input placeholder="Event Title" className="flex-[2] bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-orange-500 outline-none" required value={timelineForm.title} onChange={e => setTimelineForm({ ...timelineForm, title: e.target.value })} />
+                                            <input type="datetime-local" className="flex-1 bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-orange-500 outline-none text-white/70" required value={timelineForm.date} onChange={e => setTimelineForm({ ...timelineForm, date: e.target.value })} />
+                                            <button type="submit" className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg font-bold text-sm transition">{timelineForm.id ? "Update" : "Add"}</button>
+                                        </div>
                                     </form>
                                 </div>
 
