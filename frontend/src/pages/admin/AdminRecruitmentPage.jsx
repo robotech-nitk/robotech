@@ -17,7 +17,7 @@ export default function AdminRecruitmentPage() {
 
     // Assignment Form
     const [sigs, setSigs] = useState([]);
-    const [assignmentForm, setAssignmentForm] = useState({ title: "", description: "", sig: "", external_link: "" });
+    const [assignmentForm, setAssignmentForm] = useState({ id: null, title: "", description: "", sig: "", external_link: "", submission_type: "FILE" });
     const [assignmentFile, setAssignmentFile] = useState(null);
 
     // Candidate / Application State
@@ -126,7 +126,7 @@ export default function AdminRecruitmentPage() {
     // Assignment Actions
     const handleAddAssignment = async (e) => {
         e.preventDefault();
-        if (!selectedDrive || (!assignmentFile && !assignmentForm.external_link)) return;
+        if (!selectedDrive) return;
 
         try {
             const fd = new FormData();
@@ -134,14 +134,33 @@ export default function AdminRecruitmentPage() {
             fd.append("sig", assignmentForm.sig);
             fd.append("title", assignmentForm.title);
             fd.append("description", assignmentForm.description);
+            fd.append("submission_type", assignmentForm.submission_type || "FILE");
             if (assignmentFile) fd.append("file", assignmentFile);
             if (assignmentForm.external_link) fd.append("external_link", assignmentForm.external_link);
 
-            await api.post("/recruitment/assignments/", fd);
-            setAssignmentForm({ title: "", description: "", sig: "", external_link: "" });
+            if (assignmentForm.id) {
+                await api.patch(`/recruitment/assignments/${assignmentForm.id}/`, fd);
+            } else {
+                await api.post("/recruitment/assignments/", fd);
+            }
+
+            setAssignmentForm({ id: null, title: "", description: "", sig: "", external_link: "", submission_type: "FILE" });
             setAssignmentFile(null);
             loadDrives();
-        } catch (err) { alert("Failed to add assignment"); }
+        } catch (err) { alert("Failed to save assignment"); }
+    };
+
+    const handleEditAssignment = (asn) => {
+        setAssignmentForm({
+            id: asn.id,
+            title: asn.title,
+            description: asn.description,
+            sig: asn.sig,
+            external_link: asn.external_link || "",
+            submission_type: asn.submission_type || "FILE"
+        });
+        const form = document.getElementById('assignment-form');
+        form?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const handleDeleteAssignment = async (id) => {
@@ -377,32 +396,45 @@ export default function AdminRecruitmentPage() {
                                                     <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg h-fit"><FileText size={18} /></div>
                                                     <div>
                                                         <h4 className="font-bold text-white leading-tight">{asn.title}</h4>
-                                                        <p className="text-[10px] text-blue-400 font-black uppercase mt-1 tracking-widest">{asn.sig_name}</p>
+                                                        <p className="text-[10px] text-blue-400 font-black uppercase mt-1 tracking-widest">{asn.sig_name} • {asn.submission_type}</p>
                                                     </div>
                                                 </div>
-                                                <button onClick={() => handleDeleteAssignment(asn.id)} className="text-gray-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition"><Trash size={14} /></button>
+                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                                    <button onClick={() => handleEditAssignment(asn)} className="text-gray-600 hover:text-white p-1"><FileText size={14} /></button>
+                                                    <button onClick={() => handleDeleteAssignment(asn.id)} className="text-gray-600 hover:text-red-400 p-1"><Trash size={14} /></button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
 
-                                    <form onSubmit={handleAddAssignment} className="mt-6 pt-6 border-t border-white/5 space-y-4">
-                                        <div className="grid sm:grid-cols-2 gap-4">
-                                            <input placeholder="Task Title" className="bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm" required value={assignmentForm.title} onChange={e => setAssignmentForm({ ...assignmentForm, title: e.target.value })} />
+                                    <form id="assignment-form" onSubmit={handleAddAssignment} className="mt-6 pt-6 border-t border-white/5 space-y-4">
+                                        <div className="flex justify-between items-center text-xs text-gray-500 font-bold uppercase tracking-widest">
+                                            <span>{assignmentForm.id ? "Edit Task" : "New Task"}</span>
+                                            {assignmentForm.id && <button type="button" onClick={() => setAssignmentForm({ id: null, title: "", description: "", sig: "", external_link: "", submission_type: "FILE" })} className="text-red-400 hover:text-red-300">Cancel Edit</button>}
+                                        </div>
+                                        <div className="grid sm:grid-cols-3 gap-4">
+                                            <input placeholder="Task Title" className="sm:col-span-2 bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm" required value={assignmentForm.title} onChange={e => setAssignmentForm({ ...assignmentForm, title: e.target.value })} />
                                             <select className="bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm text-gray-400" required value={assignmentForm.sig} onChange={e => setAssignmentForm({ ...assignmentForm, sig: e.target.value })} >
                                                 <option value="">Select SIG</option>
                                                 {sigs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                             </select>
                                         </div>
+                                        <div className="grid sm:grid-cols-2 gap-4">
+                                            <select className="bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm text-gray-400" value={assignmentForm.submission_type} onChange={e => setAssignmentForm({ ...assignmentForm, submission_type: e.target.value })} >
+                                                <option value="FILE">Require File Upload</option>
+                                                <option value="LINK">Require Link Submission</option>
+                                            </select>
+                                            <input placeholder="OR External Link (Drive/Doc)" className="bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm" value={assignmentForm.external_link} onChange={e => setAssignmentForm({ ...assignmentForm, external_link: e.target.value })} />
+                                        </div>
                                         <textarea placeholder="Task description..." className="w-full bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm h-20" value={assignmentForm.description} onChange={e => setAssignmentForm({ ...assignmentForm, description: e.target.value })} />
                                         <div className="grid sm:grid-cols-2 gap-4">
                                             <label className="flex items-center justify-center gap-2 bg-white/5 border border-dashed border-white/10 rounded-lg p-3 cursor-pointer hover:border-blue-500/50 transition">
                                                 <Upload size={16} className="text-gray-500" />
-                                                <span className="text-xs text-gray-400">{assignmentFile ? assignmentFile.name : "Choose File"}</span>
+                                                <span className="text-xs text-gray-400">{assignmentFile ? assignmentFile.name : (assignmentForm.id ? "Change File (Optional)" : "Choose File (Optional)")}</span>
                                                 <input type="file" className="hidden" onChange={e => setAssignmentFile(e.target.files[0])} />
                                             </label>
-                                            <input placeholder="OR External Link (Drive/Doc)" className="bg-white/5 rounded-lg px-4 py-2 border border-white/10 focus:border-blue-500 outline-none text-sm" value={assignmentForm.external_link} onChange={e => setAssignmentForm({ ...assignmentForm, external_link: e.target.value })} />
+                                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold text-sm text-black transition">{assignmentForm.id ? "Update Task" : "Add Task"}</button>
                                         </div>
-                                        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold text-sm text-black transition">Add Task</button>
                                     </form>
                                 </div>
                             </div>

@@ -14,6 +14,7 @@ export default function RecruitmentPage() {
 
     // Submission UI
     const [showUpload, setShowUpload] = useState(false);
+    const [candidateName, setCandidateName] = useState("");
     const [identifier, setIdentifier] = useState("");
     const [file, setFile] = useState(null);
     const [solutionLink, setSolutionLink] = useState("");
@@ -41,12 +42,15 @@ export default function RecruitmentPage() {
 
     const handleUpload = async (e) => {
         e.preventDefault();
-        if (!identifier || (!file && !solutionLink)) return setMessage({ text: "ID and either File or Link required", type: "error" });
+        if (!identifier || !candidateName || (!file && !solutionLink)) return setMessage({ text: "Name, ID and solution required", type: "error" });
 
         try {
             setSubmitting(true);
             const fd = new FormData();
+            fd.append("candidate_name", candidateName);
             fd.append("identifier", identifier);
+            if (selectedSig?.sig) fd.append("sig", selectedSig.sig);
+
             if (file) fd.append("assessment_file", file);
             if (solutionLink) fd.append("solution_link", solutionLink);
             fd.append("drive", drive.id);
@@ -263,6 +267,17 @@ export default function RecruitmentPage() {
                             )}
 
                             <div>
+                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Full Name</label>
+                                <input
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none"
+                                    placeholder="Enter your full name"
+                                    value={candidateName}
+                                    onChange={e => setCandidateName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div>
                                 <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Primary Identifier</label>
                                 <input
                                     className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none"
@@ -273,36 +288,34 @@ export default function RecruitmentPage() {
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Solution File (PDF/ZIP)</label>
-                                <label className="w-full h-24 flex flex-col items-center justify-center bg-black/60 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-orange-500/50 transition group">
-                                    {file ? (
-                                        <div className="text-orange-400 font-bold">{file.name}</div>
-                                    ) : (
-                                        <>
-                                            <Upload className="text-gray-600 group-hover:text-orange-500 mb-1" size={24} />
-                                            <span className="text-gray-500 text-xs">Drop File</span>
-                                        </>
-                                    )}
-                                    <input type="file" className="hidden" onChange={e => { setFile(e.target.files[0]); setSolutionLink(""); }} accept=".pdf,.zip,.rar" />
-                                </label>
-                            </div>
+                            {(!selectedSig?.submission_type || selectedSig.submission_type === 'FILE') && (
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Solution File (PDF/ZIP)</label>
+                                    <label className="w-full h-24 flex flex-col items-center justify-center bg-black/60 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-orange-500/50 transition group">
+                                        {file ? (
+                                            <div className="text-orange-400 font-bold">{file.name}</div>
+                                        ) : (
+                                            <>
+                                                <Upload className="text-gray-600 group-hover:text-orange-500 mb-1" size={24} />
+                                                <span className="text-gray-500 text-xs">Drop File</span>
+                                            </>
+                                        )}
+                                        <input type="file" className="hidden" onChange={e => { setFile(e.target.files[0]); setSolutionLink(""); }} accept=".pdf,.zip,.rar" />
+                                    </label>
+                                </div>
+                            )}
 
-                            <div className="relative py-2 flex items-center">
-                                <div className="flex-grow border-t border-white/5"></div>
-                                <span className="flex-shrink mx-4 text-gray-600 text-[10px] font-bold uppercase tracking-widest">OR</span>
-                                <div className="flex-grow border-t border-white/5"></div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Drive / GitHub Link</label>
-                                <input
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-sm"
-                                    placeholder="https://drive.google.com/..."
-                                    value={solutionLink}
-                                    onChange={e => { setSolutionLink(e.target.value); setFile(null); }}
-                                />
-                            </div>
+                            {selectedSig?.submission_type === 'LINK' && (
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Drive / GitHub Link</label>
+                                    <input
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-orange-500 outline-none text-sm"
+                                        placeholder="https://drive.google.com/..."
+                                        value={solutionLink}
+                                        onChange={e => { setSolutionLink(e.target.value); setFile(null); }}
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setShowUpload(false)} className="flex-1 py-4 text-gray-500 font-bold hover:bg-white/5 rounded-xl transition uppercase tracking-widest text-xs">Cancel</button>

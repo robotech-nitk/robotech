@@ -62,6 +62,7 @@ class RecruitmentApplication(models.Model):
     # Primary Identifier from Form Response
     identifier = models.CharField(max_length=255) 
     candidate_name = models.CharField(max_length=255, blank=True)
+    sig = models.ForeignKey('users.Sig', on_delete=models.SET_NULL, null=True, blank=True, related_name='applications')
     
     # Assessment
     assessment_file = models.FileField(upload_to='recruitment/assessments/', null=True, blank=True)
@@ -89,10 +90,15 @@ class RecruitmentApplication(models.Model):
         return f"{self.identifier} - {self.drive.title}"
 
 class RecruitmentAssignment(models.Model):
+    SUBMISSION_CHOICES = [
+        ('FILE', 'File Upload'),
+        ('LINK', 'Link Submission'),
+    ]
     drive = models.ForeignKey(RecruitmentDrive, on_delete=models.CASCADE, related_name='assignments')
     sig = models.ForeignKey('users.Sig', on_delete=models.CASCADE, related_name='recruitment_assignments')
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    submission_type = models.CharField(max_length=10, choices=SUBMISSION_CHOICES, default='FILE')
     file = models.FileField(upload_to='recruitment/assignments/', null=True, blank=True)
     external_link = models.URLField(blank=True, help_text="Link to external assignment doc/folder")
     created_at = models.DateTimeField(auto_now_add=True)
