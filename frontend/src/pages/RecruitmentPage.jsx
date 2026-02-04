@@ -21,6 +21,9 @@ export default function RecruitmentPage() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
 
+    // Interview Search
+    const [interviewSearch, setInterviewSearch] = useState("");
+
     useEffect(() => {
         fetchActiveDrive();
     }, []);
@@ -275,6 +278,70 @@ export default function RecruitmentPage() {
                         )}
                     </div>
                 </section>
+
+                {/* INTERVIEW STATUS SECTION */}
+                {drive.panels?.some(p => p.slots?.length > 0) && (
+                    <section>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-1 bg-orange-600 rounded-full"></div>
+                                <h2 className="text-2xl font-[Orbitron] font-black uppercase tracking-widest text-orange-400">Interview Status</h2>
+                            </div>
+                            <input
+                                placeholder="Search your name..."
+                                className="bg-[#111] border border-white/10 rounded-xl px-5 py-3 text-white outline-none focus:border-orange-500 w-full md:w-64"
+                                value={interviewSearch}
+                                onChange={e => setInterviewSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {(() => {
+                                const allSlots = drive.panels
+                                    .flatMap(p => p.slots)
+                                    .filter(s => {
+                                        const query = interviewSearch.toLowerCase();
+                                        return (s.candidate_name || "").toLowerCase().includes(query) || (s.application_identifier || "").toLowerCase().includes(query);
+                                    })
+                                    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+
+                                if (allSlots.length === 0) return <div className="col-span-full text-center text-gray-500 italic py-12 border border-dashed border-white/10 rounded-xl">No interviews found.</div>;
+
+                                return allSlots.map(slot => (
+                                    <div key={slot.id} className={`p-6 rounded-2xl border flex flex-col gap-3 transition ${slot.status === 'COMPLETED' ? 'bg-green-500/5 border-green-500/20' :
+                                            slot.status === 'ONGOING' ? 'bg-orange-500/10 border-orange-500/40 animate-pulse' :
+                                                'bg-[#111] border-white/5 hover:border-white/10'
+                                        }`}>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="font-bold text-white text-lg">{slot.candidate_name || slot.application_identifier}</h4>
+                                                <p className="text-xs text-gray-400 font-mono mt-1">{slot.application_identifier}</p>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${slot.status === 'COMPLETED' ? 'bg-green-500 text-black' :
+                                                    slot.status === 'ONGOING' ? 'bg-orange-500 text-black' :
+                                                        'bg-white/10 text-gray-400'
+                                                }`}>
+                                                {slot.status}
+                                            </span>
+                                        </div>
+
+                                        <div className="h-px bg-white/5 w-full my-1"></div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg ${slot.status === 'COMPLETED' ? 'text-green-500 bg-green-500/10' : 'text-gray-400 bg-white/5'}`}>
+                                                <Clock size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500 uppercase font-bold">Time Slot</p>
+                                                <p className="text-sm font-medium text-white">{formatDateIST(slot.start_time)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+                    </section>
+                )}
             </main>
 
             {/* UPLOAD MODAL */}

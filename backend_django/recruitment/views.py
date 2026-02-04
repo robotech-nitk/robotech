@@ -21,7 +21,7 @@ class RecruitmentDriveViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def active_public(self, request):
         """Public endpoint to get the current active recruitment drive"""
-        drive = RecruitmentDrive.objects.filter(is_active=True, is_public=True).prefetch_related('timeline', 'assignments').first()
+        drive = RecruitmentDrive.objects.filter(is_active=True, is_public=True).prefetch_related('timeline', 'assignments', 'panels__slots').first()
         if drive:
             return Response(RecruitmentDriveSerializer(drive).data)
         return Response(None)
