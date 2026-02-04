@@ -40,7 +40,8 @@ export default function AdminRecruitmentPage() {
     const [panels, setPanels] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState(null);
     const [showPanelModal, setShowPanelModal] = useState(false);
-    const [panelForm, setPanelForm] = useState({ panel_number: 1, name: "" });
+    const [panelForm, setPanelForm] = useState({ panel_number: 1, name: "", members: [] });
+    const [memberSearch, setMemberSearch] = useState(""); // Search state for members
 
     // Slot Generation
     const [slotConfig, setSlotConfig] = useState({ start_time: "", duration_minutes: 20 });
@@ -101,7 +102,7 @@ export default function AdminRecruitmentPage() {
 
     const loadPanels = async (driveId) => {
         try {
-            const res = await api.get(`/ recruitment / panels /? drive_id = ${driveId} `);
+            const res = await api.get(`/recruitment/panels/?drive_id=${driveId}`);
             setPanels(res.data);
         } catch (err) { console.error(err); }
     };
@@ -126,7 +127,7 @@ export default function AdminRecruitmentPage() {
         if (!slotConfig.duration_minutes) return alert("Please set a duration.");
 
         try {
-            await api.post(`/ recruitment / panels / ${selectedPanel.id} /generate_slots/`, {
+            await api.post(`/recruitment/panels/${selectedPanel.id}/generate_slots/`, {
                 start_time: slotConfig.start_time,
                 duration_minutes: slotConfig.duration_minutes,
                 candidate_ids: selectedCandidates
@@ -135,7 +136,7 @@ export default function AdminRecruitmentPage() {
             setSelectedCandidates([]);
             setShowCandidatePicker(false);
             loadPanels(selectedDrive.id);
-            const res = await api.get(`/ recruitment / panels / ${selectedPanel.id}/`);
+            const res = await api.get(`/recruitment/panels/${selectedPanel.id}/`);
             setSelectedPanel(res.data);
             loadApplications(selectedDrive.id);
         } catch (err) {
@@ -883,8 +884,14 @@ export default function AdminRecruitmentPage() {
 
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 uppercase">Panel Members</label>
-                                        <div className="flex flex-wrap gap-2 mt-2 bg-black/40 border border-white/10 p-2 rounded-lg max-h-32 overflow-y-auto">
-                                            {users.map(u => (
+                                        <input
+                                            placeholder="Search users..."
+                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs mb-2 text-white outline-none focus:border-orange-500"
+                                            value={memberSearch}
+                                            onChange={e => setMemberSearch(e.target.value)}
+                                        />
+                                        <div className="flex flex-wrap gap-2 mt-2 bg-black/40 border border-white/10 p-2 rounded-lg max-h-32 overflow-y-auto custom-scrollbar">
+                                            {users.filter(u => u.username.toLowerCase().includes(memberSearch.toLowerCase())).map(u => (
                                                 <label key={u.id} className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer border transition text-[10px] ${panelForm.members?.includes(u.id) ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'border-white/10 text-gray-400 opacity-60 hover:opacity-100'}`}>
                                                     <input
                                                         type="checkbox"
