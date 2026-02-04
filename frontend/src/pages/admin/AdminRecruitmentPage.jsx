@@ -110,15 +110,46 @@ export default function AdminRecruitmentPage() {
     const handleCreatePanel = async (e) => {
         e.preventDefault();
         try {
-            await api.post("/recruitment/panels/", {
-                ...panelForm,
-                drive: selectedDrive.id,
-                members: panelForm.members // Send selected member IDs
-            });
+            if (panelForm.id) {
+                // UPDATE Existing Panel
+                await api.patch(`/recruitment/panels/${panelForm.id}/`, {
+                    ...panelForm,
+                    drive: selectedDrive.id,
+                    members: panelForm.members
+                });
+            } else {
+                // CREATE New Panel
+                await api.post("/recruitment/panels/", {
+                    ...panelForm,
+                    drive: selectedDrive.id,
+                    members: panelForm.members
+                });
+            }
             setShowPanelModal(false);
             setPanelForm({ panel_number: panels.length + 2, name: "", members: [] });
             loadPanels(selectedDrive.id);
-        } catch (err) { alert("Failed to create panel"); }
+        } catch (err) { alert("Failed to save panel"); }
+    };
+
+    const handleEditPanel = (panel, e) => {
+        e.stopPropagation(); // Prevent selecting the panel
+        setPanelForm({
+            id: panel.id,
+            panel_number: panel.panel_number,
+            name: panel.name,
+            members: panel.members || [] // Ensure backend sends members list
+        });
+        setShowPanelModal(true);
+    };
+
+    const handleDeletePanel = async (panelId, e) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this panel? All slots will be lost.")) return;
+        try {
+            await api.delete(`/recruitment/panels/${panelId}/`);
+            loadPanels(selectedDrive.id);
+            if (selectedPanel?.id === panelId) setSelectedPanel(null);
+        } catch (err) { alert("Failed to delete panel"); }
     };
 
     const handleGenerateSlots = async () => {
@@ -688,7 +719,10 @@ export default function AdminRecruitmentPage() {
                                 {/* Panels List */}
                                 <div className="lg:col-span-1 space-y-4">
                                     <button
-                                        onClick={() => setShowPanelModal(true)}
+                                        onClick={() => {
+                                            setPanelForm({ panel_number: panels.length + 1, name: "", members: [] }); // Reset form
+                                            setShowPanelModal(true);
+                                        }}
                                         className="w-full py-3 border-2 border-dashed border-white/10 hover:border-orange-500/50 rounded-xl text-gray-400 hover:text-orange-400 font-bold transition flex items-center justify-center gap-2"
                                     >
                                         <Plus size={16} /> Add Panel
@@ -714,7 +748,21 @@ export default function AdminRecruitmentPage() {
                                                 >
                                                     <div className="flex justify-between items-center">
                                                         <span className="font-bold">Panel {panel.panel_number}</span>
-                                                        <span className="text-xs bg-black/20 px-2 py-0.5 rounded">{panel.slots?.length || 0} Slots</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs bg-black/20 px-2 py-0.5 rounded mr-1">{panel.slots?.length || 0} Slots</span>
+                                                            <button
+                                                                onClick={(e) => handleEditPanel(panel, e)}
+                                                                className="p-1 hover:text-white hover:bg-white/10 rounded transition"
+                                                            >
+                                                                <FileText size={12} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => handleDeletePanel(panel.id, e)}
+                                                                className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded transition"
+                                                            >
+                                                                <Trash size={12} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <p className="text-sm opacity-60 truncate">{panel.name || "General Panel"}</p>
                                                     {ongoing && (
@@ -870,7 +918,7 @@ export default function AdminRecruitmentPage() {
                 showPanelModal && (
                     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
                         <div className="glass p-8 rounded-2xl w-full max-w-sm border border-orange-500/30 shadow-2xl">
-                            <h2 className="text-xl font-bold mb-4 font-[Orbitron] text-orange-400">Add Interview Panel</h2>
+                            <h2 className="text-xl font-bold mb-4 font-[Orbitron] text-orange-400">{panelForm.id ? "Edit Panel" : "Add Interview Panel"}</h2>
                             <form onSubmit={handleCreatePanel}>
                                 <div className="space-y-4">
                                     <div>
@@ -912,7 +960,7 @@ export default function AdminRecruitmentPage() {
 
                                     <div className="flex justify-end gap-3 pt-4">
                                         <button type="button" onClick={() => setShowPanelModal(false)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white">Cancel</button>
-                                        <button type="submit" className="px-6 py-2 bg-orange-500 text-black font-bold rounded-lg hover:bg-orange-400">Create</button>
+                                        <button type="submit" className="px-6 py-2 bg-orange-500 text-black font-bold rounded-lg hover:bg-orange-400">{panelForm.id ? "Update" : "Create"}</button>
                                     </div>
                                 </div>
                             </form>
