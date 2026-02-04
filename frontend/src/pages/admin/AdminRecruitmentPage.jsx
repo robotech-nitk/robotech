@@ -44,6 +44,7 @@ export default function AdminRecruitmentPage() {
 
     // Slot Generation
     const [slotConfig, setSlotConfig] = useState({ start_time: "", duration_minutes: 20 });
+    const [users, setUsers] = useState([]); // Added missing state
     const [selectedCandidates, setSelectedCandidates] = useState([]); // Array of IDs
     const [showCandidatePicker, setShowCandidatePicker] = useState(false);
 
@@ -93,7 +94,7 @@ export default function AdminRecruitmentPage() {
     const loadApplications = async (driveId) => {
         if (!driveId) return;
         try {
-            const res = await api.get(`/ recruitment / applications /? drive_id = ${driveId} `);
+            const res = await api.get(`/recruitment/applications/?drive_id=${driveId}`);
             setApplications(res.data);
         } catch (err) { console.error(err); }
     };
