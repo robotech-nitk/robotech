@@ -123,6 +123,8 @@ class GlobalPermission(permissions.BasePermission):
             'TimelineEventViewSet': 'can_manage_team',
             'RecruitmentAssignmentViewSet': 'can_manage_team',
             'RecruitmentApplicationViewSet': 'can_manage_team',
+            'InterviewPanelViewSet': 'can_manage_team',
+            'InterviewSlotViewSet': 'can_manage_team',
             'OptionViewSet': 'can_manage_forms',
         }
 
