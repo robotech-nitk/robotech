@@ -127,6 +127,14 @@ export default function RecruitmentPage() {
                         }} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition uppercase tracking-widest text-sm w-full sm:w-auto text-center">
                             View Assessments
                         </button>
+                        {drive.panels?.some(p => p.slots?.length > 0) && (
+                            <button onClick={() => {
+                                const section = document.getElementById('interviews');
+                                section?.scrollIntoView({ behavior: 'smooth' });
+                            }} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition uppercase tracking-widest text-sm w-full sm:w-auto text-center">
+                                Check Interviews
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -281,7 +289,7 @@ export default function RecruitmentPage() {
 
                 {/* INTERVIEW STATUS SECTION */}
                 {drive.panels?.some(p => p.slots?.length > 0) && (
-                    <section>
+                    <section id="interviews">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-1 bg-orange-600 rounded-full"></div>
@@ -309,8 +317,8 @@ export default function RecruitmentPage() {
 
                                 return allSlots.map(slot => (
                                     <div key={slot.id} className={`p-6 rounded-2xl border flex flex-col gap-3 transition ${slot.status === 'COMPLETED' ? 'bg-green-500/5 border-green-500/20' :
-                                            slot.status === 'ONGOING' ? 'bg-orange-500/10 border-orange-500/40 animate-pulse' :
-                                                'bg-[#111] border-white/5 hover:border-white/10'
+                                        slot.status === 'ONGOING' ? 'bg-orange-500/10 border-orange-500/40 animate-pulse' :
+                                            'bg-[#111] border-white/5 hover:border-white/10'
                                         }`}>
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -318,8 +326,8 @@ export default function RecruitmentPage() {
                                                 <p className="text-xs text-gray-400 font-mono mt-1">{slot.application_identifier}</p>
                                             </div>
                                             <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${slot.status === 'COMPLETED' ? 'bg-green-500 text-black' :
-                                                    slot.status === 'ONGOING' ? 'bg-orange-500 text-black' :
-                                                        'bg-white/10 text-gray-400'
+                                                slot.status === 'ONGOING' ? 'bg-orange-500 text-black' :
+                                                    'bg-white/10 text-gray-400'
                                                 }`}>
                                                 {slot.status}
                                             </span>
