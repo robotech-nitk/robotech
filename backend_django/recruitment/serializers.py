@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import RecruitmentDrive, TimelineEvent, RecruitmentAssignment, RecruitmentApplication
+from .models import RecruitmentDrive, TimelineEvent, RecruitmentAssignment, RecruitmentApplication, InterviewPanel, InterviewSlot
 
 class TimelineEventSerializer(serializers.ModelSerializer):
     class Meta:
