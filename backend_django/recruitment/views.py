@@ -1,9 +1,11 @@
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import RecruitmentDrive, TimelineEvent, RecruitmentAssignment, RecruitmentApplication
-from .serializers import RecruitmentDriveSerializer, TimelineEventSerializer, RecruitmentAssignmentSerializer, RecruitmentApplicationSerializer
+from .models import RecruitmentDrive, TimelineEvent, RecruitmentAssignment, RecruitmentApplication, InterviewPanel, InterviewSlot
+from .serializers import RecruitmentDriveSerializer, TimelineEventSerializer, RecruitmentAssignmentSerializer, RecruitmentApplicationSerializer, InterviewPanelSerializer, InterviewSlotSerializer
 from django.db import transaction
+from datetime import timedelta
+from django.utils.dateparse import parse_datetime
 
 class RecruitmentDriveViewSet(viewsets.ModelViewSet):
     queryset = RecruitmentDrive.objects.all().order_by('-created_at')
@@ -110,3 +112,88 @@ class RecruitmentAssignmentViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         from users.permissions import GlobalPermission
         return [GlobalPermission()]
+
+class InterviewPanelViewSet(viewsets.ModelViewSet):
+    queryset = InterviewPanel.objects.all()
+    serializer_class = InterviewPanelSerializer
+    
+    def get_permissions(self):
+        from users.permissions import GlobalPermission
+        return [GlobalPermission()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        drive_id = self.request.query_params.get('drive_id')
+        if drive_id:
+            qs = qs.filter(drive_id=drive_id)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    def generate_slots(self, request, pk=None):
+        panel = self.get_object()
+        
+        # Get parameters from request or panel
+        start_time = panel.start_time
+        duration = panel.slot_duration
+        
+        # Override if provided in request
+        if 'start_time' in request.data and request.data['start_time']:
+            start_time = parse_datetime(request.data['start_time'])
+        if 'duration_minutes' in request.data and request.data['duration_minutes']:
+             duration = timedelta(minutes=int(request.data['duration_minutes']))
+
+        if not start_time or not duration:
+            return Response({"error": "Start time and duration are required. Set them in panel config or pass in request."}, status=400)
+        
+        # Update panel config
+        panel.start_time = start_time
+        panel.slot_duration = duration
+        panel.save()
+
+        candidate_ids = request.data.get('candidate_ids', [])
+        
+        created_slots = []
+        current_time = start_time
+        
+        # If candidate_ids provided, create slots for them
+        for index, candidate_id in enumerate(candidate_ids):
+            # Fetch application
+            try:
+                app = RecruitmentApplication.objects.get(id=candidate_id)
+                # Check if already has slot? Maybe override?
+                # For now assume fresh assignment
+                
+                slot = InterviewSlot.objects.create(
+                    panel=panel,
+                    application=app,
+                    start_time=current_time,
+                    end_time=current_time + duration,
+                    order=index
+                )
+                created_slots.append(slot)
+                current_time += duration
+                
+                # Update application status
+                app.status = 'INTERVIEW_SCHEDULED'
+                app.interview_time = slot.start_time
+                app.save()
+                
+            except RecruitmentApplication.DoesNotExist:
+                continue
+                
+        return Response(InterviewPanelSerializer(panel).data)
+
+class InterviewSlotViewSet(viewsets.ModelViewSet):
+    queryset = InterviewSlot.objects.all()
+    serializer_class = InterviewSlotSerializer
+    
+    def get_permissions(self):
+        from users.permissions import GlobalPermission
+        return [GlobalPermission()]
+    
+    def get_queryset(self):
+        qs = super().get_queryset()
+        panel_id = self.request.query_params.get('panel_id')
+        if panel_id:
+            qs = qs.filter(panel_id=panel_id)
+        return qs

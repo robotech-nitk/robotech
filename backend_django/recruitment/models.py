@@ -105,3 +105,47 @@ class RecruitmentAssignment(models.Model):
 
     def __str__(self):
         return f"{self.sig.name} - {self.title}"
+
+class InterviewPanel(models.Model):
+    drive = models.ForeignKey(RecruitmentDrive, on_delete=models.CASCADE, related_name='panels')
+    panel_number = models.IntegerField() # e.g. 1, 2, 3
+    name = models.CharField(max_length=200, blank=True) # e.g. "Software Panel 1"
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='interview_panels', blank=True)
+    
+    # Configuration for auto-generation
+    start_time = models.DateTimeField(null=True, blank=True)
+    slot_duration = models.DurationField(null=True, blank=True, help_text="Duration of each interview slot")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('drive', 'panel_number')
+
+    def __str__(self):
+        return f"Panel {self.panel_number} - {self.drive.title}"
+
+class InterviewSlot(models.Model):
+    STATUS_CHOICES = [
+        ('SCHEDULED', 'Scheduled'),
+        ('ONGOING', 'Ongoing'),
+        ('COMPLETED', 'Completed'),
+        ('DELAYED', 'Delayed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
+    panel = models.ForeignKey(InterviewPanel, on_delete=models.CASCADE, related_name='slots')
+    application = models.OneToOneField(RecruitmentApplication, on_delete=models.SET_NULL, null=True, blank=True, related_name='interview_slot')
+    
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='SCHEDULED')
+    
+    # To track order changes or delays
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['start_time']
+
+    def __str__(self):
+        return f"{self.panel} - {self.application} ({self.start_time})"

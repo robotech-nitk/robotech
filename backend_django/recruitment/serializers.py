@@ -35,9 +35,25 @@ class RecruitmentApplicationSerializer(serializers.ModelSerializer):
             pass
         return "N/A"
 
+class InterviewSlotSerializer(serializers.ModelSerializer):
+    application_identifier = serializers.CharField(source='application.identifier', read_only=True)
+    candidate_name = serializers.CharField(source='application.candidate_name', read_only=True)
+
+    class Meta:
+        model = InterviewSlot
+        fields = '__all__'
+
+class InterviewPanelSerializer(serializers.ModelSerializer):
+    slots = InterviewSlotSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = InterviewPanel
+        fields = '__all__'
+
 class RecruitmentDriveSerializer(serializers.ModelSerializer):
     timeline = TimelineEventSerializer(many=True, read_only=True)
     assignments = RecruitmentAssignmentSerializer(many=True, read_only=True)
+    panels = InterviewPanelSerializer(many=True, read_only=True)
     applications_count = serializers.IntegerField(source='applications.count', read_only=True)
     
     class Meta:

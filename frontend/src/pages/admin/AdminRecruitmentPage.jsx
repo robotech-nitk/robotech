@@ -36,10 +36,27 @@ export default function AdminRecruitmentPage() {
     const [evaluatingApp, setEvaluatingApp] = useState(null);
     const [evaluationForm, setEvaluationForm] = useState({ max_score: 10, raw_score: 0, notes: "" });
 
+    // Panel Management
+    const [panels, setPanels] = useState([]);
+    const [selectedPanel, setSelectedPanel] = useState(null);
+    const [showPanelModal, setShowPanelModal] = useState(false);
+    const [panelForm, setPanelForm] = useState({ panel_number: 1, name: "" });
+
+    // Slot Generation
+    const [slotConfig, setSlotConfig] = useState({ start_time: "", duration_minutes: 20 });
+    const [selectedCandidates, setSelectedCandidates] = useState([]); // Array of IDs
+    const [showCandidatePicker, setShowCandidatePicker] = useState(false);
+
     useEffect(() => {
         loadDrives();
         loadSigs();
     }, []);
+
+    useEffect(() => {
+        if (selectedDrive) {
+            loadPanels(selectedDrive.id);
+        }
+    }, [selectedDrive]);
 
     const loadSigs = async () => {
         const res = await api.get("/sigs/");
@@ -71,6 +88,52 @@ export default function AdminRecruitmentPage() {
             const res = await api.get(`/recruitment/applications/?drive_id=${driveId}`);
             setApplications(res.data);
         } catch (err) { console.error(err); }
+    };
+
+    const loadPanels = async (driveId) => {
+        try {
+            const res = await api.get(`/recruitment/panels/?drive_id=${driveId}`);
+            setPanels(res.data);
+        } catch (err) { console.error(err); }
+    };
+
+    const handleCreatePanel = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post("/recruitment/panels/", { ...panelForm, drive: selectedDrive.id });
+            setShowPanelModal(false);
+            setPanelForm({ panel_number: panels.length + 2, name: "" });
+            loadPanels(selectedDrive.id);
+        } catch (err) { alert("Failed to create panel"); }
+    };
+
+    const handleGenerateSlots = async () => {
+        if (!selectedPanel) return;
+        try {
+            await api.post(`/recruitment/panels/${selectedPanel.id}/generate_slots/`, {
+                start_time: slotConfig.start_time,
+                duration_minutes: slotConfig.duration_minutes,
+                candidate_ids: selectedCandidates
+            });
+            alert("Slots generated successfully!");
+            setSelectedCandidates([]);
+            setShowCandidatePicker(false);
+            loadPanels(selectedDrive.id);
+            const res = await api.get(`/recruitment/panels/${selectedPanel.id}/`);
+            setSelectedPanel(res.data);
+            loadApplications(selectedDrive.id);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to generate slots");
+        }
+    };
+
+    const handleUpdateSlotStatus = async (slotId, status) => {
+        try {
+            await api.patch(`/recruitment/slots/${slotId}/`, { status });
+            const res = await api.get(`/recruitment/panels/${selectedPanel.id}/`);
+            setSelectedPanel(res.data);
+        } catch (err) { alert("Failed to update status"); }
     };
 
     const handleCreateDrive = async (e) => {
@@ -604,63 +667,158 @@ export default function AdminRecruitmentPage() {
                             </div>
 
                         ) : activeTab === 'interviews' ? (
-                            <div className="space-y-6">
-                                <div className="bg-[#0b0c15] p-6 rounded-2xl border border-white/5">
-                                    <h3 className="text-xl font-bold flex items-center gap-3 mb-6">
-                                        <MessageSquare className="text-orange-400" /> Interview Schedule
-                                    </h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                                {/* Panels List */}
+                                <div className="lg:col-span-1 space-y-4">
+                                    <button
+                                        onClick={() => setShowPanelModal(true)}
+                                        className="w-full py-3 border-2 border-dashed border-white/10 hover:border-orange-500/50 rounded-xl text-gray-400 hover:text-orange-400 font-bold transition flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={16} /> Add Panel
+                                    </button>
 
-                                    <div className="space-y-4">
-                                        {applications.filter(app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEW_COMPLETED').length === 0 && (
-                                            <p className="text-gray-500 italic">No interviews scheduled yet.</p>
-                                        )}
-                                        {applications.filter(app => app.status === 'INTERVIEW_SCHEDULED' || app.status === 'INTERVIEW_COMPLETED')
-                                            .sort((a, b) => new Date(a.interview_time) - new Date(b.interview_time))
-                                            .map(app => (
-                                                <div key={app.id} className="p-4 bg-white/5 border border-white/5 rounded-xl flex flex-col md:flex-row justify-between gap-4 items-center group hover:bg-white/10 transition">
-                                                    <div className="flex items-center gap-4 flex-1">
-                                                        <div className="p-3 bg-orange-500/10 text-orange-400 rounded-lg">
-                                                            <Users size={20} />
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <h4 className="font-bold text-white text-lg">{app.candidate_name || app.identifier}</h4>
-                                                                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 rounded uppercase font-bold">{app.sig_name}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-4 mt-1">
-                                                                <p className="text-sm text-gray-400 font-mono flex items-center gap-1.5">
-                                                                    <Calendar size={12} className="text-gray-500" />
-                                                                    {app.interview_time ? formatDateIST(app.interview_time) : "Time not set"}
-                                                                </p>
-                                                                {app.status === 'INTERVIEW_COMPLETED' && <span className="text-[10px] text-green-400 font-bold bg-green-500/10 px-2 rounded">COMPLETED</span>}
-                                                            </div>
-                                                        </div>
+                                    <div className="space-y-2">
+                                        {panels.map(panel => {
+                                            const ongoing = panel.slots?.find(s => s.status === 'ONGOING');
+                                            return (
+                                                <div
+                                                    key={panel.id}
+                                                    onClick={() => {
+                                                        setSelectedPanel(panel);
+                                                        setSlotConfig({
+                                                            start_time: panel.start_time ? panel.start_time.slice(0, 16) : "",
+                                                            duration_minutes: 20
+                                                        });
+                                                    }}
+                                                    className={`p-4 rounded-xl cursor-pointer border transition ${selectedPanel?.id === panel.id
+                                                        ? "bg-orange-500/10 border-orange-500/50 text-white"
+                                                        : "bg-white/5 border-white/5 hover:bg-white/10 text-gray-400"
+                                                        }`}
+                                                >
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold">Panel {panel.panel_number}</span>
+                                                        <span className="text-xs bg-black/20 px-2 py-0.5 rounded">{panel.slots?.length || 0} Slots</span>
                                                     </div>
-
-                                                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                                                        <div className="text-right hidden sm:block">
-                                                            <p className="text-[10px] uppercase font-bold text-gray-600">Scores</p>
-                                                            <p>OA: <span className="text-white">{app.oa_score || '-'}</span> • Asm: <span className="text-white">{app.assessment_score || '-'}</span></p>
+                                                    <p className="text-sm opacity-60 truncate">{panel.name || "General Panel"}</p>
+                                                    {ongoing && (
+                                                        <div className="mt-2 text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded border border-green-500/20 flex items-center gap-1 animate-pulse">
+                                                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                                            Ongoing: {ongoing.candidate_name || ongoing.application_identifier}
                                                         </div>
-                                                        <div className="h-8 w-[1px] bg-white/10 hidden sm:block"></div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Panel Detail */}
+                                <div className="lg:col-span-3">
+                                    {selectedPanel ? (
+                                        <div className="space-y-6">
+                                            {/* Config Section */}
+                                            <div className="bg-[#0b0c15] p-6 rounded-2xl border border-white/5">
+                                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-white/5 pb-6 mb-6">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold font-[Orbitron]">Panel {selectedPanel.panel_number}: {selectedPanel.name}</h3>
+                                                        <p className="text-gray-500 text-sm mt-1">Manage interview slots and candidates.</p>
+                                                    </div>
+                                                    <div className="flex gap-2">
                                                         <button
-                                                            onClick={() => {
-                                                                setEvaluatingApp(app);
-                                                                setEvaluationForm({
-                                                                    max_score: 10,
-                                                                    raw_score: app.interview_score || 0,
-                                                                    notes: app.notes || ""
-                                                                });
-                                                            }}
-                                                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition flex items-center gap-2"
+                                                            onClick={() => setShowCandidatePicker(true)}
+                                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-black font-bold rounded-lg transition text-sm flex items-center gap-2"
                                                         >
-                                                            <Award size={16} />
-                                                            {app.status === 'INTERVIEW_COMPLETED' ? "Update Score" : "Evaluate"}
+                                                            <Users size={16} /> Assign Candidates
                                                         </button>
                                                     </div>
                                                 </div>
-                                            ))}
-                                    </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Start Time</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            className="w-full mt-2 bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-orange-500"
+                                                            value={slotConfig.start_time}
+                                                            onChange={e => setSlotConfig({ ...slotConfig, start_time: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Slot Duration (Mins)</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full mt-2 bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-orange-500"
+                                                            value={slotConfig.duration_minutes}
+                                                            onChange={e => setSlotConfig({ ...slotConfig, duration_minutes: parseInt(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {selectedCandidates.length > 0 && (
+                                                    <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex justify-between items-center animate-fade-in">
+                                                        <div className="text-orange-400 font-bold text-sm">
+                                                            {selectedCandidates.length} Candidates Selected
+                                                        </div>
+                                                        <button
+                                                            onClick={handleGenerateSlots}
+                                                            className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-bold rounded-lg text-sm transition"
+                                                        >
+                                                            Generate Slots
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Slots List */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Interview Timeline</h4>
+                                                {selectedPanel.slots && selectedPanel.slots.length > 0 ? (
+                                                    selectedPanel.slots.sort((a, b) => new Date(a.start_time) - new Date(b.start_time)).map(slot => (
+                                                        <div key={slot.id} className={`group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border transition items-center ${slot.status === 'ONGOING' ? 'bg-green-500/10 border-green-500/50' :
+                                                            slot.status === 'COMPLETED' ? 'bg-white/5 border-white/5 opacity-60' :
+                                                                'bg-[#0b0c15] border-white/10'
+                                                            }`}>
+                                                            <div className="w-32 flex-shrink-0">
+                                                                <div className="text-white font-mono font-bold">{formatDateIST(slot.start_time).split(',')[1]}</div>
+                                                                <div className="text-[10px] text-gray-500 uppercase font-bold">{formatDateIST(slot.start_time).split(',')[0]}</div>
+                                                            </div>
+
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <h5 className="font-bold text-white text-lg">{slot.candidate_name || slot.application_identifier}</h5>
+                                                                    <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${slot.status === 'ONGOING' ? 'bg-green-500 text-black' :
+                                                                        slot.status === 'COMPLETED' ? 'bg-gray-700 text-gray-300' : 'bg-blue-500/20 text-blue-400'
+                                                                        }`}>
+                                                                        {slot.status}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mt-1">ID: {slot.application_identifier}</p>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+                                                                {slot.status !== 'ONGOING' && slot.status !== 'COMPLETED' && (
+                                                                    <button onClick={() => handleUpdateSlotStatus(slot.id, 'ONGOING')} className="p-2 bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-black rounded-lg transition" title="Start Interview"><Users size={16} /></button>
+                                                                )}
+                                                                {slot.status === 'ONGOING' && (
+                                                                    <button onClick={() => handleUpdateSlotStatus(slot.id, 'COMPLETED')} className="p-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-black rounded-lg transition" title="Mark Complete"><Award size={16} /></button>
+                                                                )}
+                                                                <button onClick={() => handleUpdateSlotStatus(slot.id, 'DELAYED')} className="p-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-black rounded-lg transition" title="Delay"><Calendar size={16} /></button>
+                                                                <button onClick={() => { setEvaluatingApp(applications.find(a => a.id === slot.application)); }} className="p-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-black rounded-lg transition" title="Evaluate"><FileText size={16} /></button>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center p-8 border border-dashed border-white/10 rounded-xl text-gray-500">
+                                                        No slots generated. Assign candidates and generate slots.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-gray-500 border border-white/5 rounded-2xl bg-white/5 p-12">
+                                            Select or create a panel to begin.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : null}
@@ -685,6 +843,76 @@ export default function AdminRecruitmentPage() {
                                     <button type="submit" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg font-bold text-black shadow-lg shadow-orange-500/20">Create</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Create Panel Modal */}
+            {
+                showPanelModal && (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="glass p-8 rounded-2xl w-full max-w-sm border border-orange-500/30 shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4 font-[Orbitron] text-orange-400">Add Interview Panel</h2>
+                            <form onSubmit={handleCreatePanel}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Panel Number</label>
+                                        <input type="number" className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none mt-1" required value={panelForm.panel_number} onChange={e => setPanelForm({ ...panelForm, panel_number: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Panel Name (Optional)</label>
+                                        <input className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none mt-1" placeholder="e.g. Design Panel" value={panelForm.name} onChange={e => setPanelForm({ ...panelForm, name: e.target.value })} />
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-4">
+                                        <button type="button" onClick={() => setShowPanelModal(false)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white">Cancel</button>
+                                        <button type="submit" className="px-6 py-2 bg-orange-500 text-black font-bold rounded-lg hover:bg-orange-400">Create</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Candidate Picker Modal */}
+            {
+                showCandidatePicker && (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-[#111] p-6 rounded-2xl w-full max-w-2xl border border-white/10 shadow-2xl h-[80vh] flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-white">Select Candidates</h2>
+                                <button type="button" onClick={() => setShowCandidatePicker(false)} className="text-gray-500 hover:text-white"><Trash size={16} /></button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                {applications.filter(app => app.status !== 'REJECTED' && app.status !== 'SELECTED').map(app => (
+                                    <div
+                                        key={app.id}
+                                        className={`p-3 rounded-lg border flex justify-between items-center cursor-pointer transition ${selectedCandidates.includes(app.id) ? 'bg-blue-600/20 border-blue-500' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
+                                        onClick={() => {
+                                            if (selectedCandidates.includes(app.id)) {
+                                                setSelectedCandidates(selectedCandidates.filter(id => id !== app.id));
+                                            } else {
+                                                setSelectedCandidates([...selectedCandidates, app.id]);
+                                            }
+                                        }}
+                                    >
+                                        <div>
+                                            <h4 className="font-bold text-white">{app.candidate_name || app.identifier}</h4>
+                                            <p className="text-xs text-gray-400">{app.sig_name} • OA: {app.oa_score || '-'} • Asm: {app.assessment_score || '-'}</p>
+                                        </div>
+                                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedCandidates.includes(app.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-600'}`}>
+                                            {selectedCandidates.includes(app.id) && <div className="w-2 h-2 bg-white rounded-sm" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-6 mt-4 border-t border-white/10 flex justify-between items-center">
+                                <p className="text-sm text-gray-500">{selectedCandidates.length} selected</p>
+                                <button onClick={() => setShowCandidatePicker(false)} className="px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200">Done</button>
+                            </div>
                         </div>
                     </div>
                 )
