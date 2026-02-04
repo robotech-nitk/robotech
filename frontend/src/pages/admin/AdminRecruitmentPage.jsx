@@ -50,6 +50,7 @@ export default function AdminRecruitmentPage() {
     useEffect(() => {
         loadDrives();
         loadSigs();
+        loadUsers();
     }, []);
 
     useEffect(() => {
@@ -61,6 +62,13 @@ export default function AdminRecruitmentPage() {
     const loadSigs = async () => {
         const res = await api.get("/sigs/");
         setSigs(res.data);
+    };
+
+    const loadUsers = async () => {
+        try {
+            const res = await api.get("/management/");
+            setUsers(res.data.filter(u => u.is_active));
+        } catch (err) { console.error("Failed to load users", err); }
     };
 
     const loadDrives = async () => {
@@ -85,14 +93,14 @@ export default function AdminRecruitmentPage() {
     const loadApplications = async (driveId) => {
         if (!driveId) return;
         try {
-            const res = await api.get(`/recruitment/applications/?drive_id=${driveId}`);
+            const res = await api.get(`/ recruitment / applications /? drive_id = ${driveId} `);
             setApplications(res.data);
         } catch (err) { console.error(err); }
     };
 
     const loadPanels = async (driveId) => {
         try {
-            const res = await api.get(`/recruitment/panels/?drive_id=${driveId}`);
+            const res = await api.get(`/ recruitment / panels /? drive_id = ${driveId} `);
             setPanels(res.data);
         } catch (err) { console.error(err); }
     };
@@ -100,17 +108,24 @@ export default function AdminRecruitmentPage() {
     const handleCreatePanel = async (e) => {
         e.preventDefault();
         try {
-            await api.post("/recruitment/panels/", { ...panelForm, drive: selectedDrive.id });
+            await api.post("/recruitment/panels/", {
+                ...panelForm,
+                drive: selectedDrive.id,
+                members: panelForm.members // Send selected member IDs
+            });
             setShowPanelModal(false);
-            setPanelForm({ panel_number: panels.length + 2, name: "" });
+            setPanelForm({ panel_number: panels.length + 2, name: "", members: [] });
             loadPanels(selectedDrive.id);
         } catch (err) { alert("Failed to create panel"); }
     };
 
     const handleGenerateSlots = async () => {
         if (!selectedPanel) return;
+        if (!slotConfig.start_time) return alert("Please set a start time.");
+        if (!slotConfig.duration_minutes) return alert("Please set a duration.");
+
         try {
-            await api.post(`/recruitment/panels/${selectedPanel.id}/generate_slots/`, {
+            await api.post(`/ recruitment / panels / ${selectedPanel.id} /generate_slots/`, {
                 start_time: slotConfig.start_time,
                 duration_minutes: slotConfig.duration_minutes,
                 candidate_ids: selectedCandidates
@@ -119,7 +134,7 @@ export default function AdminRecruitmentPage() {
             setSelectedCandidates([]);
             setShowCandidatePicker(false);
             loadPanels(selectedDrive.id);
-            const res = await api.get(`/recruitment/panels/${selectedPanel.id}/`);
+            const res = await api.get(`/ recruitment / panels / ${selectedPanel.id}/`);
             setSelectedPanel(res.data);
             loadApplications(selectedDrive.id);
         } catch (err) {
@@ -864,6 +879,29 @@ export default function AdminRecruitmentPage() {
                                         <label className="text-xs font-bold text-gray-500 uppercase">Panel Name (Optional)</label>
                                         <input className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 outline-none mt-1" placeholder="e.g. Design Panel" value={panelForm.name} onChange={e => setPanelForm({ ...panelForm, name: e.target.value })} />
                                     </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Panel Members</label>
+                                        <div className="flex flex-wrap gap-2 mt-2 bg-black/40 border border-white/10 p-2 rounded-lg max-h-32 overflow-y-auto">
+                                            {users.map(u => (
+                                                <label key={u.id} className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer border transition text-[10px] ${panelForm.members?.includes(u.id) ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'border-white/10 text-gray-400 opacity-60 hover:opacity-100'}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="hidden"
+                                                        checked={panelForm.members?.includes(u.id)}
+                                                        onChange={e => {
+                                                            const newMembers = e.target.checked
+                                                                ? [...(panelForm.members || []), u.id]
+                                                                : (panelForm.members || []).filter(id => id !== u.id);
+                                                            setPanelForm({ ...panelForm, members: newMembers });
+                                                        }}
+                                                    />
+                                                    {u.username}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <div className="flex justify-end gap-3 pt-4">
                                         <button type="button" onClick={() => setShowPanelModal(false)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white">Cancel</button>
                                         <button type="submit" className="px-6 py-2 bg-orange-500 text-black font-bold rounded-lg hover:bg-orange-400">Create</button>
