@@ -17,8 +17,10 @@ export default function AdminRecruitmentPage() {
 
     // Assignment Form
     const [sigs, setSigs] = useState([]);
+    const [forms, setForms] = useState([]); // Available forms
     const [assignmentForm, setAssignmentForm] = useState({ id: null, title: "", description: "", sig: "", external_link: "", submission_type: "FILE" });
     const [assignmentFile, setAssignmentFile] = useState(null);
+    const [syncLoading, setSyncLoading] = useState(false);
 
     // Candidate / Application State
     const [applications, setApplications] = useState([]);
@@ -53,6 +55,7 @@ export default function AdminRecruitmentPage() {
         loadDrives();
         loadSigs();
         loadUsers();
+        loadForms();
     }, []);
 
     useEffect(() => {
@@ -71,6 +74,13 @@ export default function AdminRecruitmentPage() {
             const res = await api.get("/management/");
             setUsers(res.data.filter(u => u.is_active));
         } catch (err) { console.error("Failed to load users", err); }
+    };
+
+    const loadForms = async () => {
+        try {
+            const res = await api.get("/forms/");
+            setForms(res.data);
+        } catch (err) { console.error("Failed to load forms", err); }
     };
 
     const loadDrives = async () => {
@@ -381,6 +391,35 @@ export default function AdminRecruitmentPage() {
         } catch (err) { alert("Failed to save evaluation"); }
     };
 
+    // Configuration Update
+    const handleUpdateDriveConfig = async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const updates = Object.fromEntries(fd.entries());
+        try {
+            await api.patch(`/recruitment/drives/${selectedDrive.id}/`, updates);
+            // Optimistic update
+            setSelectedDrive({ ...selectedDrive, ...updates });
+            alert("Configuration Saved.");
+        } catch (err) { alert("Failed to update config"); }
+    };
+
+    // Sync Candidates
+    const handleSyncCandidates = async () => {
+        if (!confirm("This will import/update candidates from the linked form based on the configuration. Continue?")) return;
+        setSyncLoading(true);
+        try {
+            const res = await api.post(`/recruitment/drives/${selectedDrive.id}/sync_candidates/`);
+            alert(res.data.message);
+            loadApplications(selectedDrive.id);
+        } catch (err) {
+            console.error(err);
+            alert("Sync Failed: " + (err.response?.data?.error || "Unknown Error"));
+        } finally {
+            setSyncLoading(false);
+        }
+    };
+
     // CSV Download
     const downloadCSV = () => {
         const headers = ["Candidate Name", "ID/Email", "SIG", "OA Score", "Assessment Score", "Interview Score", "Total Score", "Status"];
@@ -526,6 +565,58 @@ export default function AdminRecruitmentPage() {
 
                         {activeTab === 'overview' ? (
                             <div className="space-y-6">
+                                {/* Configuration Section */}
+                                <div className="bg-[#0b0c15] p-6 rounded-2xl border border-white/5">
+                                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                        <span className="w-1.5 h-6 bg-purple-500 rounded-lg"></span> Data Source Configuration
+                                    </h3>
+                                    <form onSubmit={handleUpdateDriveConfig} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Linked Form</label>
+                                            <select
+                                                name="form"
+                                                className="w-full mt-1 bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-purple-500 outline-none"
+                                                defaultValue={selectedDrive.form || ""}
+                                            >
+                                                <option value="">-- No Form Linked --</option>
+                                                {forms.map(f => <option key={f.id} value={f.id}>{f.title}</option>)}
+                                            </select>
+                                            <p className="text-[10px] text-gray-500 mt-1">Select the form collecting applications.</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Primary Identifier Field (UID)</label>
+                                            <input
+                                                name="primary_field"
+                                                className="w-full mt-1 bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-purple-500 outline-none"
+                                                defaultValue={selectedDrive.primary_field || ""}
+                                                placeholder="e.g. Email / Roll Number"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Name Field (Optional)</label>
+                                            <input
+                                                name="candidate_name_field"
+                                                className="w-full mt-1 bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-purple-500 outline-none"
+                                                defaultValue={selectedDrive.candidate_name_field || ""}
+                                                placeholder="e.g. Full Name"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">SIG/Domain Field (Optional)</label>
+                                            <input
+                                                name="sig_field"
+                                                className="w-full mt-1 bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-purple-500 outline-none"
+                                                defaultValue={selectedDrive.sig_field || ""}
+                                                placeholder="e.g. Interested Domain"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2 flex justify-end">
+                                            <button type="submit" className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition text-sm">Save Configuration</button>
+                                        </div>
+                                    </form>
+                                </div>
+
                                 {/* Timeline Section */}
                                 <div className="bg-[#0b0c15] p-6 rounded-2xl border border-white/5">
                                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -631,6 +722,13 @@ export default function AdminRecruitmentPage() {
                                             <Award className="text-orange-400" /> Recruitment Leaderboard
                                         </h3>
                                         <div className="flex gap-2">
+                                            <button
+                                                onClick={handleSyncCandidates}
+                                                disabled={syncLoading}
+                                                className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 text-xs font-bold disabled:opacity-50"
+                                            >
+                                                {syncLoading ? "Syncing..." : <><Users size={14} /> Sync Candidates</>}
+                                            </button>
                                             <button onClick={downloadCSV} className="flex items-center gap-2 px-3 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/20 text-xs font-bold">
                                                 <Download size={14} /> Export CSV
                                             </button>

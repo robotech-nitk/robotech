@@ -26,6 +26,59 @@ class RecruitmentDriveViewSet(viewsets.ModelViewSet):
             return Response(RecruitmentDriveSerializer(drive).data)
         return Response(None)
 
+    @action(detail=True, methods=['post'])
+    def sync_candidates(self, request, pk=None):
+        """Sync candidates from the linked Form based on configured fields"""
+        drive = self.get_object()
+        if not drive.form:
+             return Response({"error": "No form linked to this drive."}, status=400)
+        
+        if not drive.primary_field:
+             return Response({"error": "Primary field (Identifier) not configured."}, status=400)
+             
+        from core.form_models import FormResponse
+        from users.models import Sig
+        
+        responses = FormResponse.objects.filter(form=drive.form)
+        count = 0
+        updated = 0
+        
+        # Pre-fetch SIGs for lookup
+        # mapping lowercase name to ID
+        sigs_map = {s.name.lower(): s for s in Sig.objects.all()}
+        
+        for resp in responses:
+            data = resp.data
+            identifier = data.get(drive.primary_field)
+            if not identifier:
+                continue
+                
+            candidate_name = ""
+            if drive.candidate_name_field:
+                 candidate_name = data.get(drive.candidate_name_field, "")
+            
+            sig_obj = None
+            if drive.sig_field:
+                 sig_val = data.get(drive.sig_field, "")
+                 if sig_val and isinstance(sig_val, str):
+                      sig_obj = sigs_map.get(sig_val.strip().lower())
+            
+            # Create or Update Application
+            app, created = RecruitmentApplication.objects.update_or_create(
+                drive=drive,
+                identifier=identifier,
+                defaults={
+                    'candidate_name': candidate_name,
+                    'sig': sig_obj
+                }
+            )
+            if created:
+                count += 1
+            else:
+                updated += 1
+                
+        return Response({"message": f"Synced successfully. Created {count}, Updated {updated}."})
+
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
     def submit_assessment(self, request):
         """Public endpoint for candidates to submit their assessment files"""
