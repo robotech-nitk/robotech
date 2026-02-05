@@ -197,3 +197,13 @@ class InterviewSlotViewSet(viewsets.ModelViewSet):
         if panel_id:
             qs = qs.filter(panel_id=panel_id)
         return qs
+
+    def perform_destroy(self, instance):
+        """
+        When a slot is deleted, revert the application status.
+        """
+        if instance.application:
+            instance.application.status = 'ASSESSMENT_COMPLETED'
+            instance.application.interview_time = None
+            instance.application.save()
+        instance.delete()

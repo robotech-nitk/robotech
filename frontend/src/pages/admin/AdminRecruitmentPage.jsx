@@ -184,6 +184,24 @@ export default function AdminRecruitmentPage() {
         } catch (err) { alert("Failed to update status"); }
     };
 
+    const handleDeleteSlot = async (slotId) => {
+        if (!confirm("Are you sure you want to remove this candidate from the panel?")) return;
+        try {
+            await api.delete(`/recruitment/slots/${slotId}/`);
+
+            // Refresh panel
+            const res = await api.get(`/recruitment/panels/${selectedPanel.id}/`);
+            setSelectedPanel(res.data);
+
+            // Reload applications to reflect status change
+            loadApplications(selectedDrive.id);
+            loadPanels(selectedDrive.id);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete slot");
+        }
+    };
+
     const handleCreateDrive = async (e) => {
         e.preventDefault();
         try {
@@ -869,6 +887,7 @@ export default function AdminRecruitmentPage() {
                                                                 )}
                                                                 <button onClick={() => handleUpdateSlotStatus(slot.id, 'DELAYED')} className="p-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-black rounded-lg transition" title="Delay"><Calendar size={16} /></button>
                                                                 <button onClick={() => { setEvaluatingApp(applications.find(a => a.id === slot.application)); }} className="p-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-black rounded-lg transition" title="Evaluate"><FileText size={16} /></button>
+                                                                <button onClick={() => handleDeleteSlot(slot.id)} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-black rounded-lg transition" title="Delete Slot"><Trash size={16} /></button>
                                                             </div>
                                                         </div>
                                                     ))

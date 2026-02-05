@@ -11,6 +11,8 @@ class RecruitmentDrive(models.Model):
     form = models.ForeignKey('core.Form', on_delete=models.SET_NULL, null=True, blank=True, related_name='recruitment_drives')
     quiz = models.ForeignKey('quizzes.Quiz', on_delete=models.SET_NULL, null=True, blank=True, related_name='recruitment_drives')
     primary_field = models.CharField(max_length=200, blank=True, help_text="Field label in form to use as UID (e.g. Email / Roll Number)")
+    candidate_name_field = models.CharField(max_length=200, blank=True, help_text="Field label for Candidate Name")
+    sig_field = models.CharField(max_length=200, blank=True, help_text="Field label for SIG/Interest")
     
     assessment_instructions = models.TextField(blank=True, help_text="Instructions for the file upload assessment")
     
